@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import UserHeader from '@/components/UserHeader';
+import { SnackbarProvider } from '@/app/hooks/useSnackbar';
 
 export default function UserLayout({
   children,
@@ -35,13 +36,15 @@ export default function UserLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <UserHeader username={username} />
-      <div className="flex">
-        <main className="flex-1 p-6">
-          {children}
-        </main>
+    <SnackbarProvider>
+      <div className="min-h-screen bg-gray-100">
+        <UserHeader username={username} />
+        <div className="flex">
+          <main className="flex-1 p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </SnackbarProvider>
   );
 } 

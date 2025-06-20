@@ -97,7 +97,6 @@ interface ProductPricing {
 export default function QuotationPage() {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
-  const isTablet = useMediaQuery(theme.breakpoints.down("md"))
   const [isClient, setIsClient] = useState(false)
 
   const [formData, setFormData] = useState<FormData>({

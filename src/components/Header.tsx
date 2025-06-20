@@ -1,17 +1,17 @@
 "use client"
 
 import {
-  NotificationsOutlined,
-  SearchOutlined,
-  SettingsOutlined,
-  PersonOutlined,
+  // NotificationsOutlined,
+  // SearchOutlined,
+  // SettingsOutlined,
+  // PersonOutlined,
   LogoutOutlined,
   ExpandMoreOutlined,
   SecurityOutlined,
-  HelpOutlineOutlined,
-  DarkModeOutlined,
-  LightModeOutlined,
-  MenuOutlined,
+  // HelpOutlineOutlined,
+  // DarkModeOutlined,
+  // LightModeOutlined,
+  // MenuOutlined,
 } from "@mui/icons-material"
 import { usePathname, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
@@ -38,11 +38,11 @@ export default function Header({ username }: HeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false)
-  const [isDarkMode, setIsDarkMode] = useState(false)
+  // const [isNotificationOpen, setIsNotificationOpen] = useState(false)
+  // const [isDarkMode, setIsDarkMode] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [isSearchFocused, setIsSearchFocused] = useState(false)
+  // const [searchQuery, setSearchQuery] = useState("")
+  // const [isSearchFocused, setIsSearchFocused] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const notificationRef = useRef<HTMLDivElement>(null)
 
@@ -59,13 +59,13 @@ export default function Header({ username }: HeaderProps) {
   }
 
   // Mock notifications
-  const notifications = [
-    { id: 1, title: "New quotation request", time: "2 min ago", unread: true },
-    { id: 2, title: "Company registration approved", time: "1 hour ago", unread: true },
-    { id: 3, title: "System maintenance scheduled", time: "3 hours ago", unread: false },
-  ]
+  // const notifications = [
+  //   { id: 1, title: "New quotation request", time: "2 min ago", unread: true },
+  //   { id: 2, title: "Company registration approved", time: "1 hour ago", unread: true },
+  //   { id: 3, title: "System maintenance scheduled", time: "3 hours ago", unread: false },
+  // ]
 
-  const unreadCount = notifications.filter((n) => n.unread).length
+  // const unreadCount = notifications.filter((n) => n.unread).length
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function Header({ username }: HeaderProps) {
         setIsDropdownOpen(false)
       }
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
-        setIsNotificationOpen(false)
+        // setIsNotificationOpen(false)
       }
     }
 
@@ -92,10 +92,10 @@ export default function Header({ username }: HeaderProps) {
     router.push("/admin/login")
   }
 
-  const handleProfileClick = () => {
-    router.push("/admin/profile")
-    setIsDropdownOpen(false)
-  }
+  // const handleProfileClick = () => {
+  //   router.push("/admin/profile")
+  //   setIsDropdownOpen(false)
+  // }
 
   const getInitials = (name: string): string => {
     return name
@@ -239,7 +239,7 @@ export default function Header({ username }: HeaderProps) {
               </div>
               <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Confirm Logout</h3>
               <p className="text-sm text-gray-500 text-center mb-6">
-                Are you sure you want to sign out? You'll need to sign in again to access your account.
+                Are you sure you want to sign out? You will need to sign in again to access your account.
               </p>
               <div className="flex space-x-3">
                 <button

@@ -81,7 +81,7 @@ export default function ProductList() {
     setProductToDelete(null)
   }
 
-  const totalCount = products.length
+  // const totalCount = products.length
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -91,9 +91,9 @@ export default function ProductList() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      // initial={{ opacity: 0, y: 20 }}
+      // animate={{ opacity: 1, y: 0 }}
+      // transition={{ duration: 0.5 }}
       className="min-h-screen max-w-screen bg-gray-50"
     >
       <main className="px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-24 w-full max-w-8xl mx-auto py-4 sm:py-6 lg:py-8">

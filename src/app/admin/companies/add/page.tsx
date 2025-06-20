@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface Company {
-  id: string;
+  id: number;
   name: string;
   email: string;
   phone: string;
@@ -19,7 +19,7 @@ interface Company {
   updatedAt: string;
 }
 
-export default function CompanyDetailsPage({ params }: { params: { id: string } }) {
+export default function CompanyDetailsPage() {
   const router = useRouter();
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,7 +28,7 @@ export default function CompanyDetailsPage({ params }: { params: { id: string } 
     // Here you would typically fetch the company data from your API
     // This is just sample data for demonstration
     setCompany({
-      id: params.id,
+      id: 1,
       name: 'Tech Corp',
       email: 'contact@techcorp.com',
       phone: '+1 234 567 890',
@@ -41,7 +41,7 @@ export default function CompanyDetailsPage({ params }: { params: { id: string } 
       updatedAt: '2024-03-20',
     });
     setLoading(false);
-  }, [params.id]);
+  }, [1]);
 
   if (loading) {
     return (

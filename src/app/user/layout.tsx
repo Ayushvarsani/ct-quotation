@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import UserHeader from '@/components/UserHeader';
 import { SnackbarProvider } from '@/app/hooks/useSnackbar';
 
@@ -11,7 +11,7 @@ export default function UserLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const pathname = usePathname();
+  // const pathname = usePathname();
   const [username, setUsername] = useState('');
 
   useEffect(() => {

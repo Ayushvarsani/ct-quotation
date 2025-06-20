@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
 import { useState } from "react"
@@ -37,7 +38,10 @@ export default function LoginPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { 
+      errors, 
+      // isSubmitting
+     },
   } = useForm<LoginFormData>({
     resolver: yupResolver(schema),
     mode: "onChange",
@@ -69,15 +73,15 @@ export default function LoginPage() {
   }
 
   // Handle social login
-  const handleSocialLogin = (provider: string) => {
-    setIsLoading(true)
+  // const handleSocialLogin = (provider: string) => {
+  //   setIsLoading(true)
 
-    // Simulate API call with delay
-    setTimeout(() => {
-      localStorage.setItem("user", JSON.stringify({ email: `user@${provider}.com` }))
-      router.push("/user/products")
-    }, 1500)
-  }
+  //   // Simulate API call with delay
+  //   setTimeout(() => {
+  //     localStorage.setItem("user", JSON.stringify({ email: `user@${provider}.com` }))
+  //     router.push("/user/products")
+  //   }, 1500)
+  // }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-gray-50 text-gray-900 transition-colors duration-300">

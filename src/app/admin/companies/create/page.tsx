@@ -8,13 +8,13 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import BusinessIcon from '@mui/icons-material/Business';
 import PersonIcon from '@mui/icons-material/Person';
-import LockIcon from '@mui/icons-material/Lock';
+// import LockIcon from '@mui/icons-material/Lock';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import PhoneIcon from '@mui/icons-material/Phone';
-import ErrorIcon from '@mui/icons-material/Error';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { Autocomplete, Checkbox, TextField, FormControl, InputLabel, FormHelperText, FormControlLabel } from '@mui/material';
+// import ErrorIcon from '@mui/icons-material/Error';
+// import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { Autocomplete, Checkbox, TextField,  FormControlLabel } from '@mui/material';
 
 const schema = yup.object({
   companyName: yup.string().required('Company name is required'),
@@ -70,14 +70,16 @@ export default function NewCompanyPage() {
 
   const status = watch('status');
   const handleStatusChange = (value: 'active' | 'inactive') => {
+    console.log(statusChecked);
+    
     setValue('status', value);
     setStatusChecked(value === 'active');
   };
-  const handleStatusCheckbox = () => {
-    const newStatus = statusChecked ? 'inactive' : 'active';
-    setValue('status', newStatus);
-    setStatusChecked(!statusChecked);
-  };
+  // const handleStatusCheckbox = () => {
+  //   const newStatus = statusChecked ? 'inactive' : 'active';
+  //   setValue('status', newStatus);
+  //   setStatusChecked(!statusChecked);
+  // };
 
   const onSubmit = async (data: CompanyFormData) => {
     try {
@@ -191,7 +193,7 @@ export default function NewCompanyPage() {
                         fullWidth
                       />
                     )}
-                    renderOption={(props, option, { selected }) => (
+                    renderOption={(props, option) => (
                       <li {...props} key={option.value} className="flex items-center gap-2">
                         <Checkbox
                           checked={status === option.value}

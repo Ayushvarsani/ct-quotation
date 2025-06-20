@@ -12,9 +12,6 @@ import {
   VisibilityOff,
   Email,
   Lock,
-  Google,
-  Apple,
-  Facebook,
   ErrorOutline,
   CheckCircleOutline,
 } from "@mui/icons-material"
@@ -278,18 +275,6 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              {/* Remember me checkbox */}
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
-                  Remember me
-                </label>
-              </div>
 
               {/* Submit button */}
               <motion.button

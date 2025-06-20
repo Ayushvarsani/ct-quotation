@@ -1,212 +1,573 @@
-"use client";
+"use client"
 
-import { useState } from "react";
+import type React from "react"
+import { useState, useEffect } from "react"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  Typography,
+  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  Button,
+  Box,
+  Divider,
+  IconButton,
+  useTheme,
+  useMediaQuery,
+  Grid,
+} from "@mui/material"
+import { Share, Visibility } from "@mui/icons-material"
+
+// Mock data structure
+interface Product {
+  id: number
+  srNo: number
+  size: string
+  category: string
+  packing: string
+  sqFt: number
+  weight: number
+  premium?: number
+}
+
+interface ProductGroup {
+  name: string
+  products: Product[]
+}
+
+// Mock API data
+const mockProductData: ProductGroup[] = [
+  {
+    name: "PGVT/GVT TILES",
+    products: [
+      { id: 1, srNo: 1, size: "600X600", category: "GVT/PGVT", packing: "4 Pcs", sqFt: 15.5, weight: 26 },
+      { id: 2, srNo: 2, size: "600X600", category: "Lapato/Carving/Rocker", packing: "4 Pcs", sqFt: 15.5, weight: 26 },
+      { id: 3, srNo: 3, size: "600x600", category: "Parking Tiles (12mm)", packing: "3 Pcs", sqFt: 11.6, weight: 29.5 },
+      { id: 4, srNo: 4, size: "300x600", category: "Parking Tiles", packing: "4 Pcs", sqFt: 7.75, weight: 20 },
+      { id: 5, srNo: 5, size: "300x300", category: "Parking Tiles", packing: "7 Pcs", sqFt: 6.78, weight: 17.5 },
+      { id: 6, srNo: 6, size: "600X1200", category: "GVT/PGVT", packing: "2 Pcs", sqFt: 15.5, weight: 28 },
+      { id: 7, srNo: 7, size: "600X1200", category: "Punch", packing: "2 Pcs", sqFt: 15.5, weight: 28 },
+      { id: 8, srNo: 8, size: "600X1200", category: "Lapato/Carving/Rocker", packing: "2 Pcs", sqFt: 15.5, weight: 28 },
+    ],
+  },
+  {
+    name: "Wall Tiles",
+    products: [
+      { id: 9, srNo: 16, size: "300x300", category: "Floor Tiles", packing: "8 Pcs", sqFt: 7.75, weight: 9.1 },
+      { id: 10, srNo: 17, size: "300x450", category: "Wall Tiles", packing: "6 Pcs", sqFt: 8.72, weight: 11 },
+      { id: 11, srNo: 18, size: "300X600", category: "Wall Tiles", packing: "5 Pcs", sqFt: 9.68, weight: 14 },
+      {
+        id: 12,
+        srNo: 19,
+        size: "300X600",
+        category: "High Depth Elevation",
+        packing: "4 Pcs",
+        sqFt: 7.75,
+        weight: 11.7,
+      },
+    ],
+  },
+]
 
 interface FormData {
-  name: string;
-  ref: string;
-  partyGroup: string;
-  date: string;
+  Name: string
+  mobile: string
+  refParty: string
+  seName: string
+  paymentWithDays: string
+  tax: string
+  remark: string
 }
 
-interface InputProps {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  placeholder?: string;
-  className?: string;
+interface ProductPricing {
+  [key: number]: {
+    premium: string
+    standard: string
+    price: string
+  }
 }
 
-const Input = ({ label, value, onChange, type = "text", placeholder, className = "" }: InputProps) => (
-  <div className="flex items-center gap-4 group">
-    <label className="w-24 text-sm font-semibold text-gray-700 group-hover:text-blue-600 transition-colors">
-      {label}
-    </label>
-    <input
-      type={type}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className={`flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all hover:border-blue-400 ${className}`}
-      placeholder={placeholder}
-      aria-label={label}
-    />
-  </div>
-);
+export default function QuotationPage() {
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"))
+  const [isClient, setIsClient] = useState(false)
 
-const QuotationPage = () => {
   const [formData, setFormData] = useState<FormData>({
-    name: "",
-    ref: "",
-    partyGroup: "",
-    date: new Date().toISOString().split("T")[0],
-  });
-  const [taxes, setTaxes] = useState("");
-  const [paymentWithin, setPaymentWithin] = useState("");
-  const [customNote, setCustomNote] = useState("");
+    Name: "",
+    mobile: "",
+    refParty: "",
+    seName: "",
+    paymentWithDays: "",
+    tax: "",
+    remark: "",
+  })
 
-  const handleInputChange = (field: keyof FormData) => (value: string) => {
+  const [productGroups, setProductGroups] = useState<ProductGroup[]>([])
+  const [productPricing, setProductPricing] = useState<ProductPricing>({})
+  const [currentDate, setCurrentDate] = useState("")
+
+  // Mock API call
+  useEffect(() => {
+    // Simulate API call
+    setTimeout(() => {
+      setProductGroups(mockProductData)
+    }, 500)
+
+    // Set current date
+    const today = new Date()
+    const formattedDate = today.toISOString().split("T")[0]
+    setCurrentDate(formattedDate)
+  }, [])
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  const handleInputChange = (field: keyof FormData) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
-    }));
-  };
+      [field]: event.target.value,
+    }))
+  }
+
+  const handlePricingChange =
+    (productId: number, field: "premium" | "standard" | "price") => (event: React.ChangeEvent<HTMLInputElement>) => {
+      setProductPricing((prev) => ({
+        ...prev,
+        [productId]: {
+          ...prev[productId],
+          [field]: event.target.value,
+        },
+      }))
+    }
+
+  const handleShare = () => {
+    console.log("Share functionality")
+  }
+
+  const handlePreview = () => {
+    console.log("Preview functionality")
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 container mx-auto">
-      <div className="w-full px-4">
-        <div className="bg-white rounded-xl shadow-2xl p-8 transform transition-all hover:shadow-3xl">
-          <div className="flex justify-between items-center mb-8 border-b pb-6">
-            <h1 className="text-3xl font-bold text-gray-800 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+    <Box sx={{ minHeight: "100vh", bgcolor: "#f5f5f5", py: { xs: 2, sm: 4 }, px: { xs: 1, sm: 2 } }}>
+      <Card sx={{ maxWidth: 1200, mx: "auto", boxShadow: 3 }}>
+        <CardHeader
+          title={
+            <Typography variant={isMobile ? "h5" : "h4"} component="h1" sx={{ fontWeight: "bold", color: "#1976d2" }}>
               Price List
-            </h1>
-          </div>
-          <div className="flex justify-between mb-8 border-b pb-6">
-            <div className="space-y-6 w-2/3">
-              <Input
-                label="Name"
-                value={formData.name}
-                onChange={handleInputChange("name")}
-                placeholder="Enter Name"
-              />
-              <Input
-                label="Reference"
-                value={formData.ref}
-                onChange={handleInputChange("ref")}
-                placeholder="Enter Reference"
-              />
-              <Input
-                label="Party Group"
-                value={formData.partyGroup}
-                onChange={handleInputChange("partyGroup")}
-                placeholder="Enter Party Group"
-              />
-            </div>
-            <div className="flex gap-4 w-[30%] justify-end">
-              <div className="h-full flex flex-col justify-start group">
-                <Input
-                  label="Date"
-                  value={formData.date}
-                  onChange={handleInputChange("date")}
-                  type="date"
-                  className="w-full"
-                />
-              </div>
-            </div>
-          </div>
-          <table className="w-full border-collapse">
-            <thead>
-                <tr className="bg-gray-50">
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">Sr. No.</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">Size</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">Packing</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">Sq. Ft.</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">Weight</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">Prem</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 border-b">Action</th>
-                </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-                <tr className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-sm text-gray-700">1</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                        <input
-                            type="text"
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Enter item"
-                        />
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                        <input
-                            type="text"
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Enter description"
-                        />
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                        <input
-                            type="number"
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Qty"
-                        />
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                        <input
-                            type="number"
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Price"
-                        />
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">0.00</td>
-                    <td className="px-4 py-3 text-sm text-gray-700">
-                        <button className="text-red-600 hover:text-red-800 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                        </button>
-                    </td>
-                </tr>
-            </tbody>
-          </table>
-          {/* Note Section */}
-          <div className="mt-10">
-            <div className="text-lg font-semibold mb-2">Note :-</div>
-            <ol className="list-decimal ml-6 space-y-2">
-              <li>
-                Taxes <input
-                  type="text"
-                  value={taxes}
-                  onChange={e => setTaxes(e.target.value)}
-                  className="border-b border-black w-40 outline-none focus:border-blue-500 bg-transparent px-2"
-                  placeholder=""
-                />
-              </li>
-              <li>
-                Payment within <input
-                  type="text"
-                  value={paymentWithin}
-                  onChange={e => setPaymentWithin(e.target.value)}
-                  className="border-b border-black w-34 outline-none focus:border-blue-500 bg-transparent px-2"
-                  placeholder=""
-                /> from date of billing
-              </li>
-              <li>
-                <input
-                  type="text"
-                  value={customNote}
-                  onChange={e => setCustomNote(e.target.value)}
-                  className="border-b border-black w-full outline-none focus:border-blue-500 bg-transparent px-2"
-                  placeholder=""
-                />
-              </li>
-            </ol>
-          </div>
-          {/* Button Section */}
-          <div className="mt-8 flex justify-end gap-4">
-            <button
-              className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-semibold flex items-center gap-2"
-              onClick={() => {/* Add share functionality */}}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M15 8a3 3 0 10-2.977-2.63l-4.94 2.47a3 3 0 100 4.319l4.94 2.47a3 3 0 10.895-1.789l-4.94-2.47a3.027 3.027 0 000-.74l4.94-2.47C13.456 7.68 14.19 8 15 8z" />
-              </svg>
-              Share
-            </button>
-            <button
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold flex items-center gap-2"
-              onClick={() => {/* Add preview functionality */}}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-              </svg>
-              Preview
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+            </Typography>
+          }
+        />
 
-export default QuotationPage;
+        <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+
+          <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Box
+                sx={{
+                  display: { xs: "block", sm: "flex" },
+                  alignItems: "center",
+                  gap: 2,
+                }}
+              >
+                <Typography
+                  sx={{ minWidth: { sm: 120 }, fontWeight: 500, fontSize: { xs: "0.9rem", sm: "1rem" }, mb: { xs: 1, sm: 0 } }}
+                >
+                  Name :
+                </Typography>
+                <TextField
+                  fullWidth
+                  required
+                  label=""
+                  placeholder="Enter customer name"
+                  value={formData.Name}
+                  onChange={handleInputChange("Name")}
+                  variant="outlined"
+                  size="small"
+                />
+              </Box>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Box
+                sx={{
+                  display: { xs: "block", sm: "flex" },
+                  alignItems: "center",
+                  gap: 2,
+                }}
+              >
+                <Typography
+                  sx={{ minWidth: { sm: 120 }, fontWeight: 500, fontSize: { xs: "0.9rem", sm: "1rem" }, mb: { xs: 1, sm: 0 } }}
+                >
+                  Mobile :
+                </Typography>
+                <TextField
+                  fullWidth
+                  required
+                  label=""
+                  placeholder="Enter mobile number"
+                  value={formData.mobile}
+                  onChange={handleInputChange("mobile")}
+                  variant="outlined"
+                  size="small"
+                />
+              </Box>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Box
+                sx={{
+                  display: { xs: "block", sm: "flex" },
+                  alignItems: "center",
+                  gap: 2,
+                }}
+              >
+                <Typography
+                  sx={{ minWidth: { sm: 120 }, fontWeight: 500, fontSize: { xs: "0.9rem", sm: "1rem" }, mb: { xs: 1, sm: 0 } }}
+                >
+                  Ref Party :
+                </Typography>
+                <TextField
+                  fullWidth
+                  label=""
+                  placeholder="Enter reference party"
+                  value={formData.refParty}
+                  onChange={handleInputChange("refParty")}
+                  variant="outlined"
+                  size="small"
+                />
+              </Box>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Box
+                sx={{
+                  display: { xs: "block", sm: "flex" },
+                  alignItems: "center",
+                  gap: 2,
+                }}
+              >
+                <Typography
+                  sx={{ minWidth: { sm: 120 }, fontWeight: 500, fontSize: { xs: "0.9rem", sm: "1rem" }, mb: { xs: 1, sm: 0 } }}
+                >
+                  SE Name :
+                </Typography>
+                <TextField
+                  fullWidth
+                  label=""
+                  placeholder="Enter SE name"
+                  value={formData.seName}
+                  onChange={handleInputChange("seName")}
+                  variant="outlined"
+                  size="small"
+                />
+              </Box>
+            </Grid>
+
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Box
+                sx={{
+                  display: { xs: "block", sm: "flex" },
+                  alignItems: "center",
+                  gap: 2,
+                }}
+              >
+                <Typography
+                  sx={{ minWidth: { sm: 120 }, fontWeight: 500, fontSize: { xs: "0.9rem", sm: "1rem" }, mb: { xs: 1, sm: 0 } }}
+                >
+                  Date :
+                </Typography>
+                <TextField
+                  type="date"
+                  required
+                  value={currentDate}
+                  onChange={(e) => setCurrentDate(e.target.value)}
+                  variant="outlined"
+                  size="small"
+                  sx={{ width: { xs: "100%", sm: 200 } }}
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
+            </Grid>
+          </Grid>
+
+          <Divider sx={{ my: 3 }} />
+
+          {/* Product Tables - Keep Original Design */}
+          {productGroups.map((group, groupIndex) => (
+            <Box key={groupIndex} sx={{ mb: 4 }}>
+              <Typography variant={isMobile ? "h6" : "h5"} sx={{ fontWeight: "bold", mb: 2, color: "#333" }}>
+                {group.name}
+              </Typography>
+
+              {isClient && isMobile ? (
+                // Mobile View: Card-based layout
+                <Box>
+                  {group.products.map((product) => (
+                    <Paper key={product.id} sx={{ p: 2, mb: 2, boxShadow: 2, borderRadius: 2 }}>
+                      <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
+                        {product.size} - {product.category}
+                      </Typography>
+                      <Divider sx={{ mb: 2 }} />
+                      <Grid container spacing={2}>
+                        <Grid size={{ xs: 6 }}>
+                          <Typography variant="body2">
+                            <strong>Sr. No.:</strong> {product.srNo}
+                          </Typography>
+                          <Typography variant="body2">
+                            <strong>Pcs/Box:</strong> {product.packing}
+                          </Typography>
+                        </Grid>
+                        <Grid size={{ xs: 6 }}>
+                          <Typography variant="body2">
+                            <strong>Sq.ft:</strong> {product.sqFt}
+                          </Typography>
+                          <Typography variant="body2">
+                            <strong>Weight:</strong> {product.weight}
+                          </Typography>
+                        </Grid>
+                        <Grid size={{ xs: 4 }}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            variant="outlined"
+                            label="Premium"
+                            value={productPricing[product.id]?.premium || ""}
+                            onChange={handlePricingChange(product.id, "premium")}
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 4 }}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            variant="outlined"
+                            label="Standard"
+                            value={productPricing[product.id]?.standard || ""}
+                            onChange={handlePricingChange(product.id, "standard")}
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 4 }}>
+                          <TextField
+                            fullWidth
+                            size="small"
+                            variant="outlined"
+                            label="Price"
+                            value={productPricing[product.id]?.price || ""}
+                            onChange={handlePricingChange(product.id, "price")}
+                          />
+                        </Grid>
+                      </Grid>
+                    </Paper>
+                  ))}
+                </Box>
+              ) : (
+                // Desktop View: Table layout
+                <TableContainer
+                  component={Paper}
+                  sx={{
+                    mb: 3,
+                    overflowX: "auto",
+                  }}
+                >
+                  <Table size="small" sx={{ minWidth: { xs: 700, sm: "auto" } }}>
+                    <TableHead>
+                      <TableRow sx={{ bgcolor: "#f5f5f5" }}>
+                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                          Sr. No.
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                          Size - Category name
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                          Pcs Per Box
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                          Sq.ft
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                          Weight
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                          Prem.
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                          Std
+                        </TableCell>
+                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                          Price
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {group.products.map((product) => (
+                        <TableRow key={product.id} hover>
+                          <TableCell sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.srNo}</TableCell>
+                          <TableCell sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                            <Typography variant="body2">
+                              {product.size} - {product.category}
+                            </Typography>
+                          </TableCell>
+                          <TableCell sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.packing}</TableCell>
+                          <TableCell sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.sqFt}</TableCell>
+                          <TableCell sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.weight}</TableCell>
+                          <TableCell>
+                            <TextField
+                              size="small"
+                              variant="outlined"
+                              placeholder="Premium"
+                              value={productPricing[product.id]?.premium || ""}
+                              onChange={handlePricingChange(product.id, "premium")}
+                              sx={{ width: { xs: 80, sm: 100 } }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              size="small"
+                              variant="outlined"
+                              placeholder="Standard"
+                              value={productPricing[product.id]?.standard || ""}
+                              onChange={handlePricingChange(product.id, "standard")}
+                              sx={{ width: { xs: 80, sm: 100 } }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <TextField
+                              size="small"
+                              variant="outlined"
+                              placeholder="Price"
+                              value={productPricing[product.id]?.price || ""}
+                              onChange={handlePricingChange(product.id, "price")}
+                              sx={{ width: { xs: 80, sm: 100 } }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Box>
+          ))}
+
+          {/* Note Section - Responsive */}
+          <Box sx={{ mt: 4, mb: 3 }}>
+            <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2, fontSize: { xs: "1rem", sm: "1.25rem" } }}>
+              Note :-
+            </Typography>
+            <Box component="ol" sx={{ pl: { xs: 2, sm: 3 }, "& li": { mb: { xs: 2, sm: 1 } } }}>
+              <Box component="li">
+                <Box
+                  sx={{
+                    display: { xs: "block", sm: "flex" },
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                >
+                  <Typography sx={{ fontSize: { xs: "0.9rem", sm: "1rem" }, mb: { xs: 1, sm: 0 } }}>Taxes</Typography>
+                  <TextField
+                    size="small"
+                    variant="standard"
+                    sx={{ width: { xs: "100%", sm: 150 } }}
+                    placeholder="Enter tax details"
+                    required
+                  />
+                </Box>
+              </Box>
+              <Box component="li">
+                <Box
+                  sx={{
+                    display: { xs: "block", sm: "flex" },
+                    alignItems: "center",
+                    gap: 1,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Typography sx={{ fontSize: { xs: "0.9rem", sm: "1rem" }, mr: { sm: 1 }, mb: { xs: 1, sm: 0 } }}>
+                    Payment within
+                  </Typography>
+                  <TextField
+                    size="small"
+                    variant="standard"
+                    sx={{ width: { xs: "100%", sm: 100 }, mr: { sm: 1 } }}
+                    placeholder="Days"
+                    required
+                  />
+                  <Typography sx={{ fontSize: { xs: "0.9rem", sm: "1rem" } }}>from date of billing</Typography>
+                </Box>
+              </Box>
+              <Box component="li">
+                <TextField
+                  size="small"
+                  variant="standard"
+                  fullWidth
+                  placeholder="Additional notes"
+                  sx={{ maxWidth: { xs: "100%", sm: 400 } }}
+                />
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Action Buttons - Responsive with IconButton option */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              justifyContent: "flex-end",
+              gap: { xs: 2, sm: 2 },
+              mt: 4,
+            }}
+          >
+            {isClient &&
+              (isMobile ? (
+                <>
+                  <IconButton
+                    onClick={handleShare}
+                    sx={{
+                      border: "1px solid #1976d2",
+                      borderRadius: 2,
+                      p: 2,
+                      "&:hover": { bgcolor: "#f5f5f5" },
+                    }}
+                  >
+                    <Share sx={{ mr: 1 }} />
+                    <Typography variant="body2">Share</Typography>
+                  </IconButton>
+                  <IconButton
+                    onClick={handlePreview}
+                    sx={{
+                      bgcolor: "#1976d2",
+                      color: "white",
+                      borderRadius: 2,
+                      p: 2,
+                      "&:hover": { bgcolor: "#1565c0" },
+                    }}
+                  >
+                    <Visibility sx={{ mr: 1 }} />
+                    <Typography variant="body2">Preview</Typography>
+                  </IconButton>
+                </>
+              ) : (
+                <>
+                  <Button variant="outlined" startIcon={<Share />} onClick={handleShare} sx={{ px: 3 }}>
+                    Share
+                  </Button>
+                  <Button variant="contained" startIcon={<Visibility />} onClick={handlePreview} sx={{ px: 3 }}>
+                    Preview
+                  </Button>
+                </>
+              ))}
+          </Box>
+        </CardContent>
+      </Card>
+    </Box>
+  )
+}

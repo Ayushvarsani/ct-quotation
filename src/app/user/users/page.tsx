@@ -1,364 +1,250 @@
-'use client';
+"use client"
 
-import { useState } from 'react';
-import { 
-  Visibility, 
-  VisibilityOff, 
-  Person, 
-  Email, 
-  Phone, 
-  Lock,
-} from '@mui/icons-material';
-import { useSnackbar } from '@/app/hooks/useSnackbar';
+import { useState } from "react"
+import { motion } from "framer-motion"
+import Link from "next/link"
+import VisibilityIcon from "@mui/icons-material/Visibility"
+import EditIcon from "@mui/icons-material/Edit"
+import AddIcon from "@mui/icons-material/Add"
+import DeleteIcon from "@mui/icons-material/Delete"
+import { Button } from "@mui/material"
+import { Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton, Slide, Stack, Pagination } from "@mui/material"
 
-interface UserFormData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  mobileNumber: string;
-  password: string;
-  confirmPassword: string;
+interface User {
+  id: string
+  name: string
+  email: string
+  mobileNumber: string
 }
 
-export default function UsersPage() {
-  const { showSnackbar } = useSnackbar();
-  const [formData, setFormData] = useState<UserFormData>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    mobileNumber: '',
-    password: '',
-    confirmPassword: '',
-  });
+export default function UserList() {
+  const [users, setUsers] = useState<User[]>([
+    {
+      id: "1",
+      name: "Alice Johnson",
+      email: "alice@example.com",
+      mobileNumber: "9876543210",
+    },
+    {
+      id: "2",
+      name: "Bob Smith",
+      email: "bob@example.com",
+      mobileNumber: "9123456780",
+    },
+    {
+      id: "3",
+      name: "Charlie Brown",
+      email: "charlie@example.com",
+      mobileNumber: "9988776655",
+    },
+  ])
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [errors, setErrors] = useState<Partial<UserFormData>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Modal state
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<User | null>(null)
 
-  const validateForm = (): boolean => {
-    const newErrors: Partial<UserFormData> = {};
+  const handleDeleteClick = (user: User) => {
+    setUserToDelete(user)
+    setDeleteModalOpen(true)
+  }
 
-    // First Name validation
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    } else if (formData.firstName.length < 2) {
-      newErrors.firstName = 'First name must be at least 2 characters';
+  const handleDeleteConfirm = () => {
+    if (userToDelete) {
+      setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id))
+      setDeleteModalOpen(false)
+      setUserToDelete(null)
     }
+  }
 
-    // Last Name validation
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    } else if (formData.lastName.length < 2) {
-      newErrors.lastName = 'Last name must be at least 2 characters';
-    }
+  const handleDeleteCancel = () => {
+    setDeleteModalOpen(false)
+    setUserToDelete(null)
+  }
 
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!emailRegex.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-
-    // Mobile number validation
-    const mobileRegex = /^[0-9]{10}$/;
-    if (!formData.mobileNumber.trim()) {
-      newErrors.mobileNumber = 'Mobile number is required';
-    } else if (!mobileRegex.test(formData.mobileNumber.replace(/\s/g, ''))) {
-      newErrors.mobileNumber = 'Please enter a valid 10-digit mobile number';
-    }
-
-    // Password validation
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-    } 
-
-    // Confirm password validation
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } 
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleInputChange = (field: keyof UserFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      showSnackbar('Please fix the validation errors', 'error', 4000);
-      return;
-    }
-
-    // Log the form data to demonstrate data binding
-    console.log('Form Data Submitted:', {
-      ...formData,
-      fullName: `${formData.firstName} ${formData.lastName}`,
-      submittedAt: new Date().toISOString()
-    });
-
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      showSnackbar('User added successfully!', 'success', 3000);
-      clearForm();
-    } catch (error) {
-      console.error('Error adding user:', error);
-      showSnackbar('Failed to add user. Please try again.', 'error', 4000);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCancel = () => {
-    clearForm();
-    setErrors({});
-    showSnackbar('Form cleared', 'info', 2000);
-  };
-
-  const clearForm = () => {
-    setFormData({
-      firstName: '',
-      lastName: '',
-      email: '',
-      mobileNumber: '',
-      password: '',
-      confirmPassword: '',
-    });
-    setShowPassword(false);
-    setShowConfirmPassword(false);
-  };
-
-  const formatMobileNumber = (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
-    if (match) {
-      return `${match[1]} ${match[2]} ${match[3]}`;
-    }
-    return cleaned;
-  };
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const rowsPerPage = 5
+  const maxPage = Math.ceil(users.length / rowsPerPage)
+  const paginatedUsers = users.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-2xl mx-auto">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-screen max-w-screen bg-gray-50"
+    >
+      <main className="px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-24 w-full max-w-8xl mx-auto py-4 sm:py-6 lg:py-8">
         {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">
-            Add New User
-          </h1>
+        <div className="flex flex-col  sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 lg:mb-8">
+          <h1 className=" text-2xl sm:text-2xl lg:text-3xl font-bold text-gray-900">User List</h1>
+          <Link
+            href="/user/users/add"
+            className="inline-flex items-center justify-center gap-2 bg-indigo-600  text-white px-4 py-2 sm:px-4 sm:py-2 rounded-lg hover:bg-indigo-700 transition-colors text-sm sm:text-base font-medium shadow-sm"
+          >
+            <AddIcon className="w-5 h-5" />
+            <span className="hidden sm:inline">Add User</span>
+            <span className="sm:hidden">Add</span>
+          </Link>
         </div>
 
-        {/* Form Card */}
-        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-          <div className="p-6 sm:p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Name Fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* First Name */}
-                <div className="space-y-2">
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                    First Name *
-                  </label>
-                  <div className="relative">
-                    <Person className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      type="text"
-                      id="firstName"
-                      value={formData.firstName}
-                      onChange={(e) => handleInputChange('firstName', e.target.value)}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                        errors.firstName ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                      placeholder="Enter first name"
-                    />
-                  </div>
-                  {errors.firstName && (
-                    <p className="text-red-500 text-sm">{errors.firstName}</p>
-                  )}
-                </div>
-
-                {/* Last Name */}
-                <div className="space-y-2">
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                    Last Name *
-                  </label>
-                  <div className="relative">
-                    <Person className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      type="text"
-                      id="lastName"
-                      value={formData.lastName}
-                      onChange={(e) => handleInputChange('lastName', e.target.value)}
-                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                        errors.lastName ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                      placeholder="Enter last name"
-                    />
-                  </div>
-                  {errors.lastName && (
-                    <p className="text-red-500 text-sm">{errors.lastName}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Email Field */}
-              <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email Address *
-                </label>
-                <div className="relative">
-                  <Email className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    type="email"
-                    id="email"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                      errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                    placeholder="Enter email address"
-                  />
-                </div>
-                {errors.email && (
-                  <p className="text-red-500 text-sm">{errors.email}</p>
-                )}
-              </div>
-
-              {/* Mobile Number Field */}
-              <div className="space-y-2">
-                <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700">
-                  Mobile Number *
-                </label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    type="tel"
-                    id="mobileNumber"
-                    value={formData.mobileNumber}
-                    onChange={(e) => handleInputChange('mobileNumber', formatMobileNumber(e.target.value))}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                      errors.mobileNumber ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'
-                    }`}
-                    placeholder="123 456 7890"
-                    maxLength={12}
-                  />
-                </div>
-                {errors.mobileNumber && (
-                  <p className="text-red-500 text-sm">{errors.mobileNumber}</p>
-                )}
-              </div>
-
-              {/* Password Fields */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Password */}
-                <div className="space-y-2">
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                    Password *
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      id="password"
-                      value={formData.password}
-                      onChange={(e) => handleInputChange('password', e.target.value)}
-                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                        errors.password ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                      placeholder="Enter password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <VisibilityOff className="h-5 w-5" /> : <Visibility className="h-5 w-5" />}
-                    </button>
-                  </div>
-                  {errors.password && (
-                    <p className="text-red-500 text-sm">{errors.password}</p>
-                  )}
-                </div>
-
-                {/* Confirm Password */}
-                <div className="space-y-2">
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                    Confirm Password *
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                    <input
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      id="confirmPassword"
-                      value={formData.confirmPassword}
-                      onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                      className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                        errors.confirmPassword ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'
-                      }`}
-                      placeholder="Confirm password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showConfirmPassword ? <VisibilityOff className="h-5 w-5" /> : <Visibility className="h-5 w-5" />}
-                    </button>
-                  </div>
-                  {errors.confirmPassword && (
-                    <p className="text-red-500 text-sm">{errors.confirmPassword}</p>
-                  )}
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <div className="pt-4 flex gap-4">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  disabled={isSubmitting}
-                  className="flex-1 py-3 px-6 rounded-lg font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-lg font-medium text-white transition-all duration-200 ${
-                    isSubmitting
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transform hover:scale-[1.02] shadow-lg hover:shadow-xl'
-                  }`}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      Submit
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+        {/* Desktop Table View */}
+        <div className="hidden lg:block bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Mobile Number</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {paginatedUsers.map((user, idx) => (
+                  <tr key={user.id} className={idx % 2 === 0 ? "bg-white hover:bg-blue-50 transition" : "bg-gray-50 hover:bg-blue-50 transition"}>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-base font-semibold text-gray-900">{user.name}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{user.email}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{user.mobileNumber}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex gap-2">
+                        <Tooltip title="View" arrow>
+                          <Link href={`/user/users/${user.id}`} className="text-blue-600 hover:text-blue-900">
+                            <IconButton size="small" color="primary">
+                              <VisibilityIcon fontSize="small" />
+                            </IconButton>
+                          </Link>
+                        </Tooltip>
+                        <Tooltip title="Edit" arrow>
+                          <Link href={`/user/users/${user.id}/edit`} className="text-green-600 hover:text-green-900">
+                            <IconButton size="small" color="success">
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Link>
+                        </Tooltip>
+                        <Tooltip title="Delete" arrow>
+                          <span>
+                            <IconButton size="small" color="error" onClick={() => handleDeleteClick(user)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
-    </div>
-  );
+
+        {/* Mobile/Tablet Card View */}
+        <div className="lg:hidden space-y-4">
+          {paginatedUsers.map((user) => (
+            <motion.div
+              key={user.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
+            >
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{user.name}</h3>
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
+                      <div>
+                        <span className="font-medium">Email:</span> {user.email}
+                      </div>
+                      <div>
+                        <span className="font-medium">Mobile Number:</span> {user.mobileNumber}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2 sm:flex-col sm:gap-2">
+                  <Link
+                    href={`/user/users/${user.id}`}
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
+                  >
+                    <VisibilityIcon className="w-4 h-4" />
+                    View
+                  </Link>
+                  <Link
+                    href={`/user/users/${user.id}/edit`}
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors"
+                  >
+                    <EditIcon className="w-4 h-4" />
+                    Edit
+                  </Link>
+                  <button
+                    onClick={() => handleDeleteClick(user)}
+                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-colors"
+                  >
+                    <DeleteIcon className="w-4 h-4" />
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Pagination for Mobile/Tablet */}
+        <Stack direction="row" justifyContent="center" mt={4} sx={{ '& .MuiPagination-ul': { gap: 1 } }}>
+          <Pagination
+            count={maxPage}
+            page={currentPage}
+            onChange={(_, page) => setCurrentPage(page)}
+            color="primary"
+            shape="rounded"
+            showFirstButton
+            showLastButton
+          />
+        </Stack>
+
+        {/* Delete Confirmation Modal */}
+        <Dialog
+          open={deleteModalOpen}
+          onClose={handleDeleteCancel}
+          aria-labelledby="delete-dialog-title"
+          aria-describedby="delete-dialog-description"
+          TransitionComponent={Slide}
+        >
+          <DialogTitle id="delete-dialog-title">Confirm Delete</DialogTitle>
+          <DialogContent>
+            <DialogContentText id="delete-dialog-description">
+              Are you sure you want to delete <b>{userToDelete?.name}</b>? This action cannot be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleDeleteCancel} color="primary" variant="outlined">
+              Cancel
+            </Button>
+            <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Empty State */}
+        {users.length === 0 && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 sm:p-12 text-center">
+            <div className="max-w-md mx-auto">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">No users found</h3>
+              <p className="text-gray-600 mb-6">Get started by adding your first user to the system.</p>
+              <Link
+                href="/user/users/add"
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                <AddIcon className="w-5 h-5" />
+                Add Your First User
+              </Link>
+            </div>
+          </div>
+        )}
+      </main>
+    </motion.div>
+  )
 }

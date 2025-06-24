@@ -14,7 +14,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
-import { useMediaQuery } from "@mui/material"
+// import { useMediaQuery } from "@mui/material"
 
 interface HeaderProps {
   username: string
@@ -33,20 +33,12 @@ const ALL_MODULES = [
   {
     name: "Quotation",
     menus: [
-      { name: "Dashboard", href: "/user/dashboard" },
+     // { name: "Dashboard", href: "/user/dashboard" },
       { name: "Products", href: "/user/products" },
       { name: "Quotation", href: "/user/quotation" },
       { name: "Users", href: "/user/users" },
     ],
   },
-  // Example for future modules:
-  // {
-  //   name: "Inventory",
-  //   menus: [
-  //     { name: "Stock List", href: "/inventory/stock" },
-  //     { name: "Add Item", href: "/inventory/add" },
-  //   ],
-  // },
 ]
 
 export default function UserHeader({ username }: HeaderProps) {
@@ -54,17 +46,11 @@ export default function UserHeader({ username }: HeaderProps) {
   const pathname = usePathname()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-  // const [ setIsNotificationOpen] = useState(false)
-  // const [isDarkMode, setIsDarkMode] = useState(false)
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
-  // const [searchQuery, setSearchQuery] = useState("")
-  // const [isSearchFocused, setIsSearchFocused] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const notificationRef = useRef<HTMLDivElement>(null)
   const mobileMenuRef = useRef<HTMLDivElement>(null)
   const [allowedModules, setAllowedModules] = useState<string[]>([])
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
-  const isDesktop = useMediaQuery("(min-width: 768px)")
 
   // Mock user profile data
   const userProfile: UserProfile = {
@@ -79,23 +65,12 @@ export default function UserHeader({ username }: HeaderProps) {
   }
 
 
-  // Mock notifications
-  // const notifications = [
-  //   { id: 1, title: "New quotation request", time: "2 min ago", unread: true },
-  //   { id: 2, title: "Company registration approved", time: "1 hour ago", unread: true },
-  //   { id: 3, title: "System maintenance scheduled", time: "3 hours ago", unread: false },
-  // ]
-
-  // const unreadCount = notifications.filter((n) => n.unread).length
 
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsDropdownOpen(false)
-      }
-      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
-        // setIsNotificationOpen(false)
       }
       if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
         setIsMobileMenuOpen(false)
@@ -181,10 +156,9 @@ export default function UserHeader({ username }: HeaderProps) {
                         ? "bg-indigo-50 text-indigo-700"
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     }`}
-                    onClick={() => {
-                      if (!isDesktop) {
-                        setOpenDropdown(openDropdown === userModules[0].name ? null : userModules[0].name)
-                      }
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenDropdown(openDropdown === userModules[0].name ? null : userModules[0].name);
                     }}
                     type="button"
                   >
@@ -198,10 +172,8 @@ export default function UserHeader({ username }: HeaderProps) {
                   {/* Dropdown menu */}
                   {openDropdown === userModules[0].name && (
                     <div
-                      className="absolute left-0 mt-2 w-48 bg-white shadow-lg rounded-lg z-50"
+                      className="absolute left-0 w-48 bg-white shadow-lg rounded-lg z-50"
                       style={{ minWidth: 180 }}
-                      // onMouseEnter={() => setOpenDropdown(userModules[0].name)}
-                      // onMouseLeave={() => setOpenDropdown(null)}
                     >
                       {singleModuleMenus.map((item) => (
                         <Link
@@ -361,7 +333,10 @@ export default function UserHeader({ username }: HeaderProps) {
                   <div>
                     <button
                       className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                      onClick={() => setOpenDropdown(openDropdown === userModules[0].name ? null : userModules[0].name)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenDropdown(openDropdown === userModules[0].name ? null : userModules[0].name);
+                      }}
                     >
                       <span>{userModules[0].name}</span>
                       <ExpandMoreOutlined

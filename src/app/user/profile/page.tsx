@@ -5,11 +5,13 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { FiEdit2, FiUser, FiMail, FiPhone, FiBriefcase, FiAward, FiArrowLeft, FiSettings } from 'react-icons/fi';
+import * as Yup from 'yup';
 
 interface UserProfile {
   name: string;
   email: string;
   mobileNo: string;
+  defaultMessageNo?: string;
   companyName?: string;
   designation?: string;
   profileImage?: string;
@@ -20,13 +22,26 @@ export default function ProfilePage() {
     name: '',
     email: '',
     mobileNo: '',
+    defaultMessageNo: '',
     companyName: '',
     designation: '',
     profileImage: ''
   });
-  const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const [selectedTab, setSelectedTab] = useState(0);
+  const [modules, setModules] = useState<string[] | null>(null);
+  const [waSettings, setWaSettings] = useState<{ [module: string]: { apiKey: string; sender: string } }>({});
+  const [waForm, setWaForm] = useState<{ apiKey: string; sender: string }>({ apiKey: '', sender: '' });
+  const [defaultMsgError, setDefaultMsgError] = useState<string | null>(null);
+  const [defaultMsgLoading, setDefaultMsgLoading] = useState(false);
+
+  // Yup schema for Default Message Number
+  const defaultMsgSchema = Yup.object().shape({
+    defaultMessageNo: Yup.string()
+      .required('Default Message Number is required')
+      .matches(/^\+?\d{10,15}$/, 'Enter a valid phone number'),
+  });
 
   useEffect(() => {
     // Get user data from localStorage
@@ -37,25 +52,109 @@ export default function ProfilePage() {
         name: parsedData.name || '',
         email: parsedData.email || '',
         mobileNo: parsedData.mobileNo || '',
+        defaultMessageNo: parsedData.defaultMessageNo || '',
         companyName: parsedData.companyName || '',
         designation: parsedData.designation || '',
         profileImage: parsedData.profileImage || ''
       });
     }
     setIsLoading(false);
+
+    // Get module(s) from localStorage
+    const updateModules = () => {
+      const moduleData = localStorage.getItem('modules');
+      if (moduleData) {
+        try {
+          const parsed = JSON.parse(moduleData);
+          if (Array.isArray(parsed)) {
+            setModules(parsed.map(String));
+          } else if (typeof parsed === 'string') {
+            setModules([parsed]);
+          } else {
+            setModules(['Default Module']);
+          }
+        } catch {
+          setModules([moduleData]);
+        }
+      } else {
+        setModules(['Default Module']);
+      }
+    };
+    updateModules();
+    setIsLoading(false);
+
+    // Listen for localStorage changes
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === 'module') {
+        updateModules();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Here you would typically make an API call to update the profile
-    // For now, we'll just update localStorage
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      const parsedData = JSON.parse(userData);
-      const updatedData = { ...parsedData, ...profile };
-      localStorage.setItem('user', JSON.stringify(updatedData));
+  // Load WhatsApp settings for selected tab
+  useEffect(() => {
+    if (modules && modules[selectedTab]) {
+      const mod = modules[selectedTab];
+      const local = localStorage.getItem(`whatsappSettings_${mod}`);
+      if (local) {
+        try {
+          const parsed = JSON.parse(local);
+          setWaForm({ apiKey: parsed.apiKey || '', sender: parsed.sender || '' });
+        } catch {
+          setWaForm({ apiKey: '', sender: '' });
+        }
+      } else {
+        setWaForm({ apiKey: '', sender: '' });
+      }
     }
-    setIsEditing(false);
+  }, [modules, selectedTab]);
+
+  const handleWaFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setWaForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleWaSave = () => {
+    if (modules && modules[selectedTab]) {
+      const mod = modules[selectedTab];
+      localStorage.setItem(`whatsappSettings_${mod}`,
+        JSON.stringify({ apiKey: waForm.apiKey, sender: waForm.sender })
+      );
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setDefaultMsgError(null);
+    setDefaultMsgLoading(true);
+    try {
+      await defaultMsgSchema.validate({ defaultMessageNo: profile.defaultMessageNo });
+      // Call mock update API
+      await fetch('/api/mock-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ defaultMessageNo: profile.defaultMessageNo }),
+      });
+      // Update localStorage
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const parsedData = JSON.parse(userData);
+        const updatedData = { ...parsedData, defaultMessageNo: profile.defaultMessageNo };
+        localStorage.setItem('user', JSON.stringify(updatedData));
+      }
+    } catch (err: any) {
+      if (err instanceof Yup.ValidationError) {
+        setDefaultMsgError(err.message);
+      } else {
+        setDefaultMsgError('An error occurred.');
+      }
+    } finally {
+      setDefaultMsgLoading(false);
+    }
   };
 
   if (isLoading) {
@@ -81,15 +180,6 @@ export default function ProfilePage() {
           >
             <FiArrowLeft className="h-5 w-5 text-indigo-600" />
           </button>
-          {/* Environment Setting Button */}
-          <button
-            className="absolute top-4 right-4 z-20 flex items-center gap-2 bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 pl-3 pr-4 shadow transition-colors text-indigo-600 font-medium"
-            aria-label="Environment Setting"
-            type="button"
-          >
-            <FiSettings className="h-5 w-5" />
-            <span className="hidden sm:inline">Environment Setting</span>
-          </button>
           {/* Header Section */}
           <div className="relative h-32 bg-gradient-to-r from-indigo-600 to-purple-600">
             <div className="absolute -bottom-16 left-8">
@@ -107,11 +197,6 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
-                {isEditing && (
-                  <button className="absolute bottom-0 right-0 bg-indigo-600 text-white p-2 rounded-full shadow-lg hover:bg-indigo-700 transition-colors">
-                    <FiEdit2 className="h-5 w-5" />
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -121,18 +206,8 @@ export default function ProfilePage() {
             <div className="flex justify-between items-start mb-8">
               <div>
                 <h2 className="text-3xl font-bold text-gray-900">{profile.name || 'Your Name'}</h2>
-                <p className="text-gray-600 mt-1">{profile.designation || 'Your Designation'}</p>
+                <p className="text-gray-600 mt-1">{profile.email || 'Email Address'}</p>
               </div>
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  isEditing
-                    ? 'bg-red-100 text-red-600 hover:bg-red-200'
-                    : 'bg-indigo-100 text-indigo-600 hover:bg-indigo-200'
-                }`}
-              >
-                {isEditing ? 'Cancel' : 'Edit Profile'}
-              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -143,13 +218,9 @@ export default function ProfilePage() {
                       <FiUser className="h-5 w-5 text-indigo-600 mr-2" />
                       Full Name
                     </label>
-                    <input
-                      type="text"
-                      value={profile.name}
-                      onChange={(e) => setProfile({ ...profile, name: e.target.value })}
-                      disabled={!isEditing}
-                      className="w-full bg-white rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-500"
-                    />
+                    <div className="w-full bg-white rounded-lg border-gray-300 px-3 py-2 text-gray-900">
+                      {profile.name || 'Your Name'}
+                    </div>
                   </div>
 
                   <div className="bg-gray-50 rounded-xl p-4">
@@ -157,27 +228,9 @@ export default function ProfilePage() {
                       <FiMail className="h-5 w-5 text-indigo-600 mr-2" />
                       Email Address
                     </label>
-                    <input
-                      type="email"
-                      value={profile.email}
-                      onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                      disabled={!isEditing}
-                      className="w-full bg-white rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-500"
-                    />
-                  </div>
-
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                      <FiPhone className="h-5 w-5 text-indigo-600 mr-2" />
-                      Mobile Number
-                    </label>
-                    <input
-                      type="tel"
-                      value={profile.mobileNo}
-                      onChange={(e) => setProfile({ ...profile, mobileNo: e.target.value })}
-                      disabled={!isEditing}
-                      className="w-full bg-white rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-500"
-                    />
+                    <div className="w-full bg-white rounded-lg border-gray-300 px-3 py-2 text-gray-900">
+                      {profile.email || 'Email Address'}
+                    </div>
                   </div>
                 </div>
 
@@ -187,46 +240,102 @@ export default function ProfilePage() {
                       <FiBriefcase className="h-5 w-5 text-indigo-600 mr-2" />
                       Company Name
                     </label>
-                    <input
-                      type="text"
-                      value={profile.companyName}
-                      onChange={(e) => setProfile({ ...profile, companyName: e.target.value })}
-                      disabled={!isEditing}
-                      className="w-full bg-white rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-500"
-                    />
+                    <div className="w-full bg-white rounded-lg border-gray-300 px-3 py-2 text-gray-900">
+                      {profile.companyName || 'Company Name'}
+                    </div>
                   </div>
 
                   <div className="bg-gray-50 rounded-xl p-4">
                     <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                      <FiAward className="h-5 w-5 text-indigo-600 mr-2" />
-                      Designation
+                      <FiPhone className="h-5 w-5 text-indigo-600 mr-2" />
+                      Mobile Number
                     </label>
-                    <input
-                      type="text"
-                      value={profile.designation}
-                      onChange={(e) => setProfile({ ...profile, designation: e.target.value })}
-                      disabled={!isEditing}
-                      className="w-full bg-white rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-500"
-                    />
+                    <div className="w-full bg-white rounded-lg border-gray-300 px-3 py-2 text-gray-900">
+                      {profile.mobileNo || 'Mobile Number'}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {isEditing && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="pt-6"
+              <div className="bg-gray-50 rounded-xl p-4 max-w-md mx-auto">
+                <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                  <FiPhone className="h-5 w-5 text-indigo-600 mr-2" />
+                  Default Message Number
+                </label>
+                <input
+                  type="tel"
+                  value={profile.defaultMessageNo}
+                  onChange={(e) => setProfile({ ...profile, defaultMessageNo: e.target.value })}
+                  className="w-full bg-white rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
+                />
+                {defaultMsgError && (
+                  <div className="text-red-600 text-sm mt-1">{defaultMsgError}</div>
+                )}
+              </div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="pt-6 max-w-md mx-auto"
+              >
+                <button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 px-4 rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg hover:shadow-xl"
+                  disabled={defaultMsgLoading}
                 >
-                  <button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 px-4 rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg hover:shadow-xl"
-                  >
-                    Save Changes
-                  </button>
-                </motion.div>
-              )}
+                  {defaultMsgLoading ? 'Saving...' : 'Save Changes'}
+                </button>
+              </motion.div>
             </form>
+
+            {/* Dynamic Tabs Section */}
+            {modules === null ? null : (
+              <div className="mt-10">
+                <div className="flex border-b border-gray-200">
+                  {modules.map((mod, idx) => (
+                    <button
+                      key={mod + idx}
+                      className={`px-4 py-2 -mb-px font-medium border-b-2 transition-colors duration-200 focus:outline-none ${
+                        selectedTab === idx
+                          ? 'border-indigo-600 text-indigo-600'
+                          : 'border-transparent text-gray-500 hover:text-indigo-600'
+                      }`}
+                      onClick={() => setSelectedTab(idx)}
+                    >
+                      {mod}
+                    </button>
+                  ))}
+                </div>
+                <div className="p-6 bg-white rounded-b-xl shadow-md">
+                  <h3 className="text-lg font-semibold mb-4">WhatsApp API Settings</h3>
+                  <form className="space-y-4" onSubmit={e => { e.preventDefault(); handleWaSave(); }}>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
+                      <input
+                        type="text"
+                        name="apiKey"
+                        value={waForm.apiKey}
+                        onChange={handleWaFormChange}
+                        className="w-full border rounded px-3 py-2"
+                        placeholder="Enter WhatsApp API Key"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Sender Number</label>
+                      <input
+                        type="text"
+                        name="sender"
+                        value={waForm.sender}
+                        onChange={handleWaFormChange}
+                        className="w-full border rounded px-3 py-2"
+                        placeholder="Enter Sender Number"
+                      />
+                    </div>
+                    <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">Save WhatsApp Settings</button>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
       </div>

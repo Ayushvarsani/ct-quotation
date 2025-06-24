@@ -329,79 +329,75 @@ export default function QuotationPage() {
               </Typography>
 
               {isClient && isMobile ? (
-                // Mobile View: Card-based layout
+                // Mobile View: Card-based layout (dynamic columns, size-category always on top)
                 <Box>
                   {group.products.map((product) => (
                     <Paper key={product.id} sx={{ p: 2, mb: 2, boxShadow: 2, borderRadius: 2 }}>
-                      {columns.filter(col => col.visible).map((col) => (
+                      {/* Always show size-category at the top */}
+                      <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
+                        {product.size} - {product.category}
+                      </Typography>
+                      <Divider sx={{ mb: 2 }} />
+                      {/* Render the rest of the fields dynamically */}
+                      {columns.filter(col => col.visible && col.key !== "sizeCategory").map((col, idx) => (
                         <React.Fragment key={col.key}>
                           {(() => {
                             switch (col.key) {
                               case "srNo":
                                 return (
-                                  <Typography variant="body2" sx={{ mb: 1 }}>
-                                    <strong>Sr. No.:</strong> {product.srNo}
-                                  </Typography>
-                                );
-                              case "sizeCategory":
-                                return (
-                                  <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
-                                    {product.size} - {product.category}
-                                  </Typography>
-                                );
-                              case "packing":
-                                return (
-                                  <Typography variant="body2">
-                                    <strong>Pcs / Box:</strong> {product.packing}
-                                  </Typography>
-                                );
-                              case "sqFt":
-                                return (
-                                  <Typography variant="body2">
-                                    <strong>Sq.ft:</strong> {product.sqFt}
-                                  </Typography>
-                                );
-                              case "weight":
-                                return (
-                                  <Typography variant="body2">
-                                    <strong>Weight:</strong> {product.weight}
-                                  </Typography>
+                                  <Grid container spacing={2} sx={{ mb: 1 }}>
+                                    <Grid size={{ xs: 6 }}>
+                                      <Typography variant="body2">
+                                        <strong>Sr. No.:</strong> {product.srNo}
+                                      </Typography>
+                                      <Typography variant="body2">
+                                        <strong>Pcs/Box:</strong> {product.packing}
+                                      </Typography>
+                                    </Grid>
+                                    <Grid size={{ xs: 6 }}>
+                                      <Typography variant="body2">
+                                        <strong>Sq.ft:</strong> {product.sqFt}
+                                      </Typography>
+                                      <Typography variant="body2">
+                                        <strong>Weight:</strong> {product.weight}
+                                      </Typography>
+                                    </Grid>
+                                  </Grid>
                                 );
                               case "premium":
                                 return (
-                                  <TextField
-                                    fullWidth
-                                    size="small"
-                                    variant="outlined"
-                                    label="Premium"
-                                    value={productPricing[product.id]?.premium || ""}
-                                    onChange={handlePricingChange(product.id, "premium")}
-                                    sx={{ mt: 1, mb: 1 }}
-                                  />
-                                );
-                              case "standard":
-                                return (
-                                  <TextField
-                                    fullWidth
-                                    size="small"
-                                    variant="outlined"
-                                    label="Standard"
-                                    value={productPricing[product.id]?.standard || ""}
-                                    onChange={handlePricingChange(product.id, "standard")}
-                                    sx={{ mt: 1, mb: 1 }}
-                                  />
-                                );
-                              case "price":
-                                return (
-                                  <TextField
-                                    fullWidth
-                                    size="small"
-                                    variant="outlined"
-                                    label="Price"
-                                    value={productPricing[product.id]?.price || ""}
-                                    onChange={handlePricingChange(product.id, "price")}
-                                    sx={{ mt: 1, mb: 1 }}
-                                  />
+                                  <Grid container spacing={2} sx={{ mb: 1 }}>
+                                    <Grid size={{ xs: 4 }}>
+                                      <TextField
+                                        fullWidth
+                                        size="small"
+                                        variant="outlined"
+                                        label="Premium"
+                                        value={productPricing[product.id]?.premium || ""}
+                                        onChange={handlePricingChange(product.id, "premium")}
+                                      />
+                                    </Grid>
+                                    <Grid size={{ xs: 4 }}>
+                                      <TextField
+                                        fullWidth
+                                        size="small"
+                                        variant="outlined"
+                                        label="Standard"
+                                        value={productPricing[product.id]?.standard || ""}
+                                        onChange={handlePricingChange(product.id, "standard")}
+                                      />
+                                    </Grid>
+                                    <Grid size={{ xs: 4 }}>
+                                      <TextField
+                                        fullWidth
+                                        size="small"
+                                        variant="outlined"
+                                        label="Price"
+                                        value={productPricing[product.id]?.price || ""}
+                                        onChange={handlePricingChange(product.id, "price")}
+                                      />
+                                    </Grid>
+                                  </Grid>
                                 );
                               default:
                                 return null;
@@ -409,7 +405,6 @@ export default function QuotationPage() {
                           })()}
                         </React.Fragment>
                       ))}
-                      <Divider sx={{ mt: 2, mb: 2 }} />
                     </Paper>
                   ))}
                 </Box>

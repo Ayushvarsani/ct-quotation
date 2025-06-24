@@ -36,6 +36,9 @@ const fields = [
 
 const filter = createFilterOptions<string>();
 
+// Define a type for Autocomplete options
+type AutoOption = { label: string; value: string } | { label: string; isAddOption: true };
+
 export default function PermissionFormPage() {
   const router = useRouter();
   const { showSnackbar } = useSnackbar();
@@ -105,10 +108,16 @@ export default function PermissionFormPage() {
   // Confirm Add New Option
   const handleDialogAdd = () => {
     if (dialogField && dialogValue.trim()) {
-      setOptions((prev) => ({
-        ...prev,
-        [dialogField]: [...(prev[dialogField] || []), dialogValue.trim()],
-      }));
+      setOptions((prev) => {
+        const existing = prev[dialogField] || [];
+        if (existing.includes(dialogValue.trim())) {
+          return prev; // Do not add duplicate
+        }
+        return {
+          ...prev,
+          [dialogField]: [...existing, dialogValue.trim()],
+        };
+      });
       setFormData((prev) => ({
         ...prev,
         [dialogField]: dialogValue.trim(),
@@ -126,7 +135,7 @@ export default function PermissionFormPage() {
         if (data.product === "error") {
           resolve({ success: false, message: "Mock API error: Product name cannot be 'error'" });
         } else {
-          resolve({ success: true });
+          resolve({ success: true }); 
         }
       }, 1200);
     });
@@ -217,73 +226,94 @@ export default function PermissionFormPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {fields
-                  .filter((field) => permissions[field.key])
-                  .map((field) => {
-                    const isAuto = field.type === "autocomplete";
-                    const value = formData[field.key] || "";
-                    const fieldOptions = options[field.key] || [];
-                    return (
-                      <div key={field.key} className="space-y-2">
-                        {isAuto ? (
-                          <Autocomplete
-                            freeSolo
-                            value={value}
-                            onChange={(_, newVal) => {
-                              if (
-                                typeof newVal === "string" &&
-                                newVal.startsWith('Add "')
-                              ) {
-                                openDialog(
-                                  field.key,
-                                  inputValues[field.key] || ""
-                                );
-                              } else {
-                                handleInputChange(field.key, newVal || "");
-                              }
-                            }}
-                            inputValue={inputValues[field.key] || ""}
-                            onInputChange={(_, newInputValue) => {
-                              setInputValues((prev) => ({
-                                ...prev,
-                                [field.key]: newInputValue,
-                              }));
-                            }}
-                            options={fieldOptions}
-                            filterOptions={(opts, params) => {
-                              const filtered = filter(opts, params);
-                              filtered.push(`Add "${params.inputValue || ''}"`);
-                              return filtered;
-                            }}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label={field.label}
-                                variant="outlined"
-                                size="small"
-                                error={!!errors[field.key]}
-                                helperText={errors[field.key]}
-                              />
-                            )}
-                          />
-                        ) : (
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label={field.label}
-                            value={value}
-                            onChange={(e) =>
-                              handleInputChange(field.key, e.target.value)
-                            }
-                            error={!!errors[field.key]}
-                            helperText={errors[field.key]}
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+  {fields
+    .filter((field) => permissions[field.key])
+    .map((field) => {
+      const isAuto = field.type === "autocomplete";
+      const value = formData[field.key] || "";
+      const fieldOptions: AutoOption[] = (options[field.key] || []).map((opt) => ({
+        label: opt,
+        value: opt,
+      }));
+
+      return (
+        <div key={field.key} className="space-y-2">
+          {isAuto ? (
+            <Autocomplete
+              value={
+                fieldOptions.find((opt) =>
+                  "value" in opt ? opt.value === value : false
+                ) || null
+              }
+              onChange={(_, newVal: AutoOption | null) => {
+                if (newVal && "isAddOption" in newVal && newVal.isAddOption) {
+                  openDialog(field.key, inputValues[field.key] || "");
+                } else if (newVal && "value" in newVal) {
+                  handleInputChange(field.key, newVal.value);
+                } else {
+                  handleInputChange(field.key, "");
+                }
+              }}
+              inputValue={inputValues[field.key] || ""}
+              onInputChange={(_, newInputValue) => {
+                setInputValues((prev) => ({
+                  ...prev,
+                  [field.key]: newInputValue,
+                }));
+              }}
+              options={fieldOptions as AutoOption[]}
+              filterOptions={(opts) => [
+                ...opts,
+                { label: "Add", isAddOption: true } as AutoOption,
+              ]}
+              getOptionLabel={(option) => option.label}
+              isOptionEqualToValue={(option, value) =>
+                "value" in option && "value" in value && option.value === value.value
+              }
+              renderOption={(props, option) => {
+                const opt = option as AutoOption;
+                return (
+                  <li {...props} key={opt.label}>
+                    {"isAddOption" in opt && opt.isAddOption ? (
+                      <Button variant="outlined" color="primary" fullWidth>
+                        {opt.label}
+                      </Button>
+                    ) : (
+                      opt.label
+                    )}
+                  </li>
+                );
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label={field.label}
+                  variant="outlined"
+                  size="small"
+                  error={!!errors[field.key]}
+                  helperText={errors[field.key]}
+                />
+              )}
+            />
+          ) : (
+            <TextField
+              fullWidth
+              size="small"
+              label={field.label}
+              value={value}
+              onChange={(e) =>
+                handleInputChange(field.key, e.target.value)
+              }
+              error={!!errors[field.key]}
+              helperText={errors[field.key]}
+            />
+          )}
+        </div>
+      );
+    })}
+</div>
+
 
               <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pt-6 sm:pt-8">
                 <motion.button

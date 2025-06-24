@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Visibility, 
   VisibilityOff, 
@@ -10,6 +10,7 @@ import {
   Lock,
 } from '@mui/icons-material';
 import { useSnackbar } from '@/app/hooks/useSnackbar';
+import { Autocomplete, Checkbox, TextField } from '@mui/material';
 
 interface UserFormData {
   name: string;
@@ -33,9 +34,33 @@ export default function UsersPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<Partial<UserFormData>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedModules, setSelectedModules] = useState<{ label: string; value: string }[]>([]);
+  const [moduleOptions, setModuleOptions] = useState<{ label: string; value: string }[]>([]);
+
+  useEffect(() => {
+    // Load module options from localStorage
+    try {
+      const stored = localStorage.getItem('modules');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+       
+        const options = Array.isArray(parsed)
+          ? parsed.map((mod: any) => ({
+              label: mod.label ?? mod.value ?? String(mod),
+              value: mod.value ?? mod.label ?? String(mod),
+            }))
+          : [];
+        setModuleOptions(options);
+      } else {
+        setModuleOptions([]);
+      }
+    } catch {
+      setModuleOptions([]);
+    }
+  }, []);
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<UserFormData> = {};
+    const newErrors: Partial<UserFormData & { modules?: string }> = {};
 
     // Name validation
     if (!formData.name.trim()) {
@@ -72,6 +97,11 @@ export default function UsersPage() {
       newErrors.confirmPassword = 'Please confirm your password';
     } 
 
+    // Module validation
+    if (selectedModules.length === 0) {
+      (newErrors as any).modules = 'Select at least one module';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -86,23 +116,29 @@ export default function UsersPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) {
       showSnackbar('Please fix the validation errors', 'error', 4000);
       return;
     }
 
-    // Log the form data to demonstrate data binding
-    console.log('Form Data Submitted:', {
-      ...formData,
-      submittedAt: new Date().toISOString()
-    });
-
     setIsSubmitting(true);
-    
-    // Simulate API call
+
+   
+    const payload = {
+      ...formData,
+      modules: selectedModules.map(opt => opt.value),
+      submittedAt: new Date().toISOString(),
+    };
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) throw new Error('Failed to add user');
+      const data = await response.json();
+      console.log('API Response:', data);
       showSnackbar('User added successfully!', 'success', 3000);
       clearForm();
     } catch (error) {
@@ -129,6 +165,7 @@ export default function UsersPage() {
     });
     setShowPassword(false);
     setShowConfirmPassword(false);
+    setSelectedModules([]);
   };
 
   const formatMobileNumber = (value: string) => {
@@ -285,6 +322,44 @@ export default function UsersPage() {
                     <p className="text-red-500 text-sm">{errors.confirmPassword}</p>
                   )}
                 </div>
+              </div>
+
+              {/* Module Autocomplete Field */}
+              <div className="space-y-2">
+                <Autocomplete
+                  multiple
+                  id="module-autocomplete"
+                  options={moduleOptions}
+                  getOptionLabel={option => option.label}
+                  value={selectedModules}
+                  onChange={(_, newValue) => {
+                    setSelectedModules(newValue);
+                  }}
+                  isOptionEqualToValue={(option, value) => option.value === value.value}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      name="modules"
+                      label="Module"
+                      error={!!(errors as any).modules}
+                      helperText={(errors as any).modules}
+                      placeholder="Select module(s)"
+                      fullWidth
+                    />
+                  )}
+                  renderOption={(props, option, { selected }) => (
+                    <li {...props} key={option.value} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={selected}
+                        tabIndex={-1}
+                        disableRipple
+                        inputProps={{ 'aria-label': option.label }}
+                      />
+                      {option.label}
+                    </li>
+                  )}
+                  disableCloseOnSelect
+                />
               </div>
 
               {/* Submit Button */}

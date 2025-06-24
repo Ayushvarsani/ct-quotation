@@ -1,6 +1,6 @@
 "use client"
 
-import type React from "react"
+import React from "react"
 import { useState, useEffect } from "react"
 import {
   Card,
@@ -23,7 +23,7 @@ import {
   useMediaQuery,
   Grid,
 } from "@mui/material"
-import { Share, Visibility } from "@mui/icons-material"
+import { CalendarToday, Share, Visibility } from "@mui/icons-material"
 
 // Mock data structure
 interface Product {
@@ -93,6 +93,18 @@ interface ProductPricing {
     price: string
   }
 }
+
+// Columns config for dynamic rendering
+const columns = [
+  { key: "srNo", label: "Sr. No.", visible: true },
+  { key: "sizeCategory", label: "Size - Category name", visible: true },
+  { key: "packing", label: "Pcs / Box", visible: true },
+  { key: "sqFt", label: "Sq.ft", visible: true },
+  { key: "weight", label: "Weight", visible: true },
+  { key: "premium", label: "Prem.", visible: true },
+  { key: "standard", label: "Std", visible: true },
+  { key: "price", label: "Price", visible: true },
+]
 
 export default function QuotationPage() {
   const theme = useTheme()
@@ -164,6 +176,14 @@ export default function QuotationPage() {
             <Typography variant={isMobile ? "h5" : "h4"} component="h1" sx={{ fontWeight: "bold", color: "#1976d2" }}>
               Price List
             </Typography>
+          }
+          action={
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {/* <CalendarToday sx={{ color: "#666" }} /> */}
+              <Typography variant="h6" >
+                {`${new Date().toLocaleDateString("en-GB")} ${new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`}
+              </Typography>
+            </Box>
           }
         />
 
@@ -272,7 +292,7 @@ export default function QuotationPage() {
               </Box>
             </Grid>
 
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            {/* <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <Box
                 sx={{
                   display: { xs: "block", sm: "flex" },
@@ -296,7 +316,7 @@ export default function QuotationPage() {
                   InputLabelProps={{ shrink: true }}
                 />
               </Box>
-            </Grid>
+            </Grid> */}
           </Grid>
 
           <Divider sx={{ my: 3 }} />
@@ -313,58 +333,83 @@ export default function QuotationPage() {
                 <Box>
                   {group.products.map((product) => (
                     <Paper key={product.id} sx={{ p: 2, mb: 2, boxShadow: 2, borderRadius: 2 }}>
-                      <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
-                        {product.size} - {product.category}
-                      </Typography>
-                      <Divider sx={{ mb: 2 }} />
-                      <Grid container spacing={2}>
-                        <Grid size={{ xs: 6 }}>
-                          <Typography variant="body2">
-                            <strong>Sr. No.:</strong> {product.srNo}
-                          </Typography>
-                          <Typography variant="body2">
-                            <strong>Pcs/Box:</strong> {product.packing}
-                          </Typography>
-                        </Grid>
-                        <Grid size={{ xs: 6 }}>
-                          <Typography variant="body2">
-                            <strong>Sq.ft:</strong> {product.sqFt}
-                          </Typography>
-                          <Typography variant="body2">
-                            <strong>Weight:</strong> {product.weight}
-                          </Typography>
-                        </Grid>
-                        <Grid size={{ xs: 4 }}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            variant="outlined"
-                            label="Premium"
-                            value={productPricing[product.id]?.premium || ""}
-                            onChange={handlePricingChange(product.id, "premium")}
-                          />
-                        </Grid>
-                        <Grid size={{ xs: 4 }}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            variant="outlined"
-                            label="Standard"
-                            value={productPricing[product.id]?.standard || ""}
-                            onChange={handlePricingChange(product.id, "standard")}
-                          />
-                        </Grid>
-                        <Grid size={{ xs: 4 }}>
-                          <TextField
-                            fullWidth
-                            size="small"
-                            variant="outlined"
-                            label="Price"
-                            value={productPricing[product.id]?.price || ""}
-                            onChange={handlePricingChange(product.id, "price")}
-                          />
-                        </Grid>
-                      </Grid>
+                      {columns.filter(col => col.visible).map((col) => (
+                        <React.Fragment key={col.key}>
+                          {(() => {
+                            switch (col.key) {
+                              case "srNo":
+                                return (
+                                  <Typography variant="body2" sx={{ mb: 1 }}>
+                                    <strong>Sr. No.:</strong> {product.srNo}
+                                  </Typography>
+                                );
+                              case "sizeCategory":
+                                return (
+                                  <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
+                                    {product.size} - {product.category}
+                                  </Typography>
+                                );
+                              case "packing":
+                                return (
+                                  <Typography variant="body2">
+                                    <strong>Pcs / Box:</strong> {product.packing}
+                                  </Typography>
+                                );
+                              case "sqFt":
+                                return (
+                                  <Typography variant="body2">
+                                    <strong>Sq.ft:</strong> {product.sqFt}
+                                  </Typography>
+                                );
+                              case "weight":
+                                return (
+                                  <Typography variant="body2">
+                                    <strong>Weight:</strong> {product.weight}
+                                  </Typography>
+                                );
+                              case "premium":
+                                return (
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    variant="outlined"
+                                    label="Premium"
+                                    value={productPricing[product.id]?.premium || ""}
+                                    onChange={handlePricingChange(product.id, "premium")}
+                                    sx={{ mt: 1, mb: 1 }}
+                                  />
+                                );
+                              case "standard":
+                                return (
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    variant="outlined"
+                                    label="Standard"
+                                    value={productPricing[product.id]?.standard || ""}
+                                    onChange={handlePricingChange(product.id, "standard")}
+                                    sx={{ mt: 1, mb: 1 }}
+                                  />
+                                );
+                              case "price":
+                                return (
+                                  <TextField
+                                    fullWidth
+                                    size="small"
+                                    variant="outlined"
+                                    label="Price"
+                                    value={productPricing[product.id]?.price || ""}
+                                    onChange={handlePricingChange(product.id, "price")}
+                                    sx={{ mt: 1, mb: 1 }}
+                                  />
+                                );
+                              default:
+                                return null;
+                            }
+                          })()}
+                        </React.Fragment>
+                      ))}
+                      <Divider sx={{ mt: 2, mb: 2 }} />
                     </Paper>
                   ))}
                 </Box>
@@ -380,74 +425,80 @@ export default function QuotationPage() {
                   <Table size="small" sx={{ minWidth: { xs: 700, sm: "auto" } }}>
                     <TableHead>
                       <TableRow sx={{ bgcolor: "#f5f5f5" }}>
-                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
-                          Sr. No.
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
-                          Size - Category name
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
-                          Pcs Per Box
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
-                          Sq.ft
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
-                          Weight
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
-                          Prem.
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
-                          Std
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
-                          Price
-                        </TableCell>
+                        {columns.filter(col => col.visible).map((col) => (
+                          <TableCell
+                            key={col.key}
+                            sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
+                          >
+                            {col.label}
+                          </TableCell>
+                        ))}
                       </TableRow>
                     </TableHead>
                     <TableBody>
                       {group.products.map((product) => (
                         <TableRow key={product.id} hover>
-                          <TableCell sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.srNo}</TableCell>
-                          <TableCell sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
-                            <Typography variant="body2">
-                              {product.size} - {product.category}
-                            </Typography>
-                          </TableCell>
-                          <TableCell sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.packing}</TableCell>
-                          <TableCell sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.sqFt}</TableCell>
-                          <TableCell sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.weight}</TableCell>
-                          <TableCell>
-                            <TextField
-                              size="small"
-                              variant="outlined"
-                              placeholder="Premium"
-                              value={productPricing[product.id]?.premium || ""}
-                              onChange={handlePricingChange(product.id, "premium")}
-                              sx={{ width: { xs: 80, sm: 100 } }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <TextField
-                              size="small"
-                              variant="outlined"
-                              placeholder="Standard"
-                              value={productPricing[product.id]?.standard || ""}
-                              onChange={handlePricingChange(product.id, "standard")}
-                              sx={{ width: { xs: 80, sm: 100 } }}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <TextField
-                              size="small"
-                              variant="outlined"
-                              placeholder="Price"
-                              value={productPricing[product.id]?.price || ""}
-                              onChange={handlePricingChange(product.id, "price")}
-                              sx={{ width: { xs: 80, sm: 100 } }}
-                            />
-                          </TableCell>
+                          {columns.filter(col => col.visible).map((col) => {
+                            switch (col.key) {
+                              case "srNo":
+                                return <TableCell key={col.key} sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.srNo}</TableCell>;
+                              case "sizeCategory":
+                                return (
+                                  <TableCell key={col.key} sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                                    <Typography variant="body2">
+                                      {product.size} - {product.category}
+                                    </Typography>
+                                  </TableCell>
+                                );
+                              case "packing":
+                                return <TableCell key={col.key} sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.packing}</TableCell>;
+                              case "sqFt":
+                                return <TableCell key={col.key} sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.sqFt}</TableCell>;
+                              case "weight":
+                                return <TableCell key={col.key} sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.weight}</TableCell>;
+                              case "premium":
+                                return (
+                                  <TableCell key={col.key}>
+                                    <TextField
+                                      size="small"
+                                      variant="outlined"
+                                      placeholder="Premium"
+                                      value={productPricing[product.id]?.premium || ""}
+                                      onChange={handlePricingChange(product.id, "premium")}
+                                      sx={{ width: { xs: 80, sm: 100 } }}
+                                    />
+                                  </TableCell>
+                                );
+                              case "standard":
+                                return (
+                                  <TableCell key={col.key}>
+                                    <TextField
+                                      size="small"
+                                      variant="outlined"
+                                      placeholder="Standard"
+                                      value={productPricing[product.id]?.standard || ""}
+                                      onChange={handlePricingChange(product.id, "standard")}
+                                      sx={{ width: { xs: 80, sm: 100 } }}
+                                    />
+                                  </TableCell>
+                                );
+                              case "price":
+                                return (
+                                  <TableCell key={col.key}>
+                                    <TextField
+                                      size="small"
+                                      variant="outlined"
+                                      placeholder="Price"
+                                      value={productPricing[product.id]?.price || ""}
+                                      onChange={handlePricingChange(product.id, "price")}
+                                      sx={{ width: { xs: 80, sm: 100 } }}
+                                    />
+                                  </TableCell>
+                                );
+                              default:
+                                return null;
+                            }
+                          })}
                         </TableRow>
                       ))}
                     </TableBody>

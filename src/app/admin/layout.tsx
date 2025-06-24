@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Header from '@/components/Header';
+import { SnackbarProvider } from "@/app/hooks/useSnackbar";
 
 export default function AdminLayout({
   children,
@@ -36,7 +37,7 @@ export default function AdminLayout({
     }
   }, [router, pathname]);
 
-  const isLoginPage = pathname === '/admin/login';
+  const isLoginPage = pathname.startsWith('/admin/login');
 
   // For non-login pages, if we don't have a username yet (e.g., on server),
   // we should render nothing to prevent content flashing and hydration errors.
@@ -46,14 +47,16 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {!isLoginPage && username && <Header username={username} />}
-      <div className="flex">
-        {/* <Sidebar /> */}
-        <main className="flex-1 p-6">
-          {children}
-        </main>
+    <SnackbarProvider>
+      <div className="min-h-screen bg-gray-100">
+        {!isLoginPage && username && <Header username={username} />}
+        <div className="flex">
+          {/* <Sidebar /> */}
+          <main className="flex-1 p-6">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </SnackbarProvider>
   );
 } 

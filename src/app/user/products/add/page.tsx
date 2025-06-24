@@ -13,8 +13,10 @@ import {
   Alert,
   createFilterOptions,
 } from "@mui/material";
-import { FormatListNumbered } from "@mui/icons-material";
+import { FormatListNumbered, ArrowBack } from "@mui/icons-material";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
+import { useSnackbar } from "@/app/hooks/useSnackbar";
 
 // Define fields and type
 const fields = [
@@ -26,15 +28,17 @@ const fields = [
   { key: "pcsPerBox", label: "Pcs per box" },
   { key: "sqFtPerBox", label: "Sq.ft per box" },
   { key: "weight", label: "Weight" },
-  { key: "pre", label: "Pre" },
-  { key: "std", label: "Std" },
-  { key: "com", label: "Com" },
-  { key: "eco", label: "Eco" },
+  // { key: "pre", label: "Pre" },
+  // { key: "std", label: "Std" },
+  // { key: "com", label: "Com" },
+  // { key: "eco", label: "Eco" },
 ];
 
 const filter = createFilterOptions<string>();
 
 export default function PermissionFormPage() {
+  const router = useRouter();
+  const { showSnackbar } = useSnackbar();
   const [permissions, setPermissions] = useState<Record<
     string,
     boolean
@@ -42,6 +46,8 @@ export default function PermissionFormPage() {
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Autocomplete dropdown options (only for 'product' and 'size')
   const [options, setOptions] = useState<Record<string, string[]>>({
@@ -70,10 +76,10 @@ export default function PermissionFormPage() {
               pcsPerBox: true,
               sqFtPerBox: true,
               weight: true,
-              pre: true,
-              std: true,
-              com: true,
-              eco: true,
+              // pre: true,
+              // std: true,
+              // com: true,
+              // eco: true,
             });
           }, 300)
       );
@@ -111,8 +117,23 @@ export default function PermissionFormPage() {
     }
   };
 
+  // Mock API function for submitting product
+  const submitProduct = async (data: Record<string, string>) => {
+    // Simulate network delay and random error
+    return new Promise<{ success: boolean; message?: string }>((resolve) => { //, reject
+      setTimeout(() => {
+        // Simulate random error for demonstration
+        if (data.product === "error") {
+          resolve({ success: false, message: "Mock API error: Product name cannot be 'error'" });
+        } else {
+          resolve({ success: true });
+        }
+      }, 1200);
+    });
+  };
+
   // Submit Form
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
     let hasError = false;
@@ -125,12 +146,39 @@ export default function PermissionFormPage() {
     });
 
     setErrors(newErrors);
+    setSubmitError(null);
 
     if (!hasError) {
-      console.log("✅ Form Submitted:", formData);
-      setSubmitSuccess(true);
-      setTimeout(() => setSubmitSuccess(false), 3000);
+      setIsSubmitting(true);
+      try {
+        const result = await submitProduct(formData);
+        if (result.success) {
+          setSubmitSuccess(true);
+          setFormData({});
+          setInputValues({});
+          showSnackbar("Product added successfully!", "success", 3000);
+          setTimeout(() => setSubmitSuccess(false), 3000);
+        } else {
+          setSubmitError(result.message || "Failed to submit product.");
+          showSnackbar(result.message || "Failed to submit product.", "error", 4000);
+        }
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err.message : "Unexpected error occurred."  );
+        showSnackbar("Unexpected error occurred.", "error", 4000);
+      } finally {
+        setIsSubmitting(false);
+      }
+    } else {
+      showSnackbar("Please fix the validation errors", "error", 4000);
     }
+  };
+
+  // Add a function to reset the form
+  const handleCancel = () => {
+    setFormData({});
+    setInputValues({});
+    setErrors({});
+    showSnackbar("Form cleared", "info", 2000);
   };
 
   if (!permissions) {
@@ -149,6 +197,15 @@ export default function PermissionFormPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
+          {/* Back Button */}
+          <button
+            type="button"
+            className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-semibold mb-4"
+            onClick={() => router.back()}
+          >
+            <ArrowBack fontSize="small" />
+            Back
+          </button>
           <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8">
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -196,12 +253,7 @@ export default function PermissionFormPage() {
                             options={fieldOptions}
                             filterOptions={(opts, params) => {
                               const filtered = filter(opts, params);
-                              if (
-                                params.inputValue &&
-                                !opts.includes(params.inputValue)
-                              ) {
-                                filtered.push(`Add "${params.inputValue}"`);
-                              }
+                              filtered.push(`Add "${params.inputValue || ''}"`);
                               return filtered;
                             }}
                             renderInput={(params) => (
@@ -235,12 +287,22 @@ export default function PermissionFormPage() {
 
               <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4 pt-6 sm:pt-8">
                 <motion.button
+                  type="button"
+                  onClick={handleCancel}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="px-4 sm:px-6 py-2.5 sm:py-3 text-sm bg-gray-200 text-gray-700 font-semibold rounded-lg hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
                   type="submit"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="px-4 sm:px-6 py-2.5 sm:py-3 text-sm bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-indigo-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                  disabled={isSubmitting}
                 >
-                  Submit
+                  {isSubmitting ? <CircularProgress size={22} color="inherit" /> : "Submit"}
                 </motion.button>
               </div>
 
@@ -249,12 +311,22 @@ export default function PermissionFormPage() {
                   Form submitted successfully!
                 </Alert>
               )}
+              {submitError && (
+                <Alert severity="error" sx={{ mt: 3 }}>
+                  {submitError}
+                </Alert>
+              )}
             </form>
 
             {/* Add New Dialog */}
             <Dialog
               open={dialogOpen}
-              onClose={() => setDialogOpen(false)}
+              onClose={() => {
+                setDialogOpen(false);
+                if (dialogField) {
+                  setInputValues((prev) => ({ ...prev, [dialogField]: "" }));
+                }
+              }}
               fullWidth
               maxWidth="xs"
               PaperProps={{
@@ -277,7 +349,12 @@ export default function PermissionFormPage() {
               </DialogContent>
               <DialogActions>
                 <Button
-                  onClick={() => setDialogOpen(false)}
+                  onClick={() => {
+                    setDialogOpen(false);
+                    if (dialogField) {
+                      setInputValues((prev) => ({ ...prev, [dialogField]: "" }));
+                    }
+                  }}
                   variant="outlined"
                   color="secondary"
                 >

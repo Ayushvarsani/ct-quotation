@@ -57,6 +57,7 @@ export default function LoginPage() {
       await new Promise((resolve) => setTimeout(resolve, 1500))
 
       localStorage.setItem("user", JSON.stringify({ email: data.email }))
+      localStorage.setItem("modules", JSON.stringify(["Quotation"]))
 
       // Show success message briefly before redirecting
       setLoginSuccess(true)
@@ -103,9 +104,9 @@ export default function LoginPage() {
           </div>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
+            // initial={{ opacity: 0, y: 20 }}
+            // animate={{ opacity: 1, y: 0 }}
+            // transition={{ duration: 0.7, delay: 0.2 }}
             className="space-y-6"
           >
             <h2 className="text-4xl font-bold text-white leading-tight">
@@ -147,9 +148,9 @@ export default function LoginPage() {
       {/* Right side - Login form */}
       <div className="w-full md:w-1/2 flex items-center justify-center p-6 md:p-12 bg-white md:bg-gray-50">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          // initial={{ opacity: 0, y: 20 }}
+          // animate={{ opacity: 1, y: 0 }}
+          // transition={{ duration: 0.5 }}
           className="w-full max-w-md"
         >
           <div className="bg-white rounded-2xl shadow-xl p-8 md:p-10 space-y-8">

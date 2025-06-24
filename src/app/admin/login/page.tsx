@@ -5,6 +5,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
+import { useSnackbar } from "@/app/hooks/useSnackbar";
 
 const schema = yup.object({
   email: yup
@@ -21,6 +22,7 @@ type LoginFormData = yup.InferType<typeof schema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const { showSnackbar } = useSnackbar();
   const {
     register,
     handleSubmit,
@@ -29,27 +31,49 @@ export default function LoginPage() {
     resolver: yupResolver(schema),
   });
 
-  const onSubmit = (data: LoginFormData) => {
-    // In a real application, you would validate credentials with your backend
-    // For now, we'll just store the user data and redirect
-    localStorage.setItem('user', JSON.stringify({ email: data.email }));
-    router.push('/admin');
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      // Call mock API
+      const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Login failed');
+      }
+
+      const result = await response.json();
+
+      // Data binding: store user info (mock)
+      localStorage.setItem('user', JSON.stringify({ ...result, email: data.email }));
+
+      showSnackbar("Login successful!", "success");
+      router.push('/admin/companies');
+    } catch (error) {
+      console.error('Login error:', error);
+      showSnackbar("Login failed. Please try again.", "error");
+    }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        // initial={{ opacity: 0, y: 20 }}
+        // animate={{ opacity: 1, y: 0 }}
+        // transition={{ duration: 0.5 }}
         className="max-w-md w-full mx-4"
       >
         <div className="bg-white rounded-lg shadow-lg p-8 space-y-8">
           <div className="text-center">
             <motion.h2 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
+              // initial={{ opacity: 0 }}
+              // animate={{ opacity: 1 }}
+              // transition={{ delay: 0.2 }}
               className="text-3xl font-bold text-gray-900 mb-2"
             >
               Welcome Back
@@ -72,8 +96,8 @@ export default function LoginPage() {
                 />
                 {errors.email && (
                   <motion.p 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    // initial={{ opacity: 0 }}
+                    // animate={{ opacity: 1 }}
                     className="mt-1 text-sm text-red-600"
                   >
                     {errors.email.message}
@@ -104,8 +128,8 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
+            <div className="flex items-end justify-end">
+              {/* <div className="flex items-center">
                 <input
                   id="remember-me"
                   name="remember-me"
@@ -115,7 +139,7 @@ export default function LoginPage() {
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
                   Remember me
                 </label>
-              </div>
+              </div> */}
 
               <div className="text-sm">
                 <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">

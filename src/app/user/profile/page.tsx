@@ -72,8 +72,8 @@ export default function ProfilePage() {
         <motion.div
           className="bg-white rounded-2xl shadow-xl overflow-hidden relative"
         >
-          {/* Back Button */}
-          <button
+         {/* Back Button */}
+         <button
             onClick={() => router.back()}
             className="absolute top-4 left-4 z-20 flex items-center bg-white bg-opacity-80 hover:bg-opacity-100 rounded-full p-2 shadow transition-colors"
             aria-label="Go back"

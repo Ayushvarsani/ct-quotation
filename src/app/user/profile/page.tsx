@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { FiEdit2, FiUser, FiMail, FiPhone, FiBriefcase, FiAward, FiArrowLeft, FiSettings } from 'react-icons/fi';
+import {  FiUser, FiMail, FiPhone, FiBriefcase,  FiArrowLeft } from 'react-icons/fi';
 import * as Yup from 'yup';
 
 interface UserProfile {
@@ -31,7 +31,7 @@ export default function ProfilePage() {
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState(0);
   const [modules, setModules] = useState<string[] | null>(null);
-  const [waSettings, setWaSettings] = useState<{ [module: string]: { apiKey: string; sender: string } }>({});
+  // const [waSettings, setWaSettings] = useState<{ [module: string]: { apiKey: string; sender: string } }>({});
   const [waForm, setWaForm] = useState<{ apiKey: string; sender: string }>({ apiKey: '', sender: '' });
   const [defaultMsgError, setDefaultMsgError] = useState<string | null>(null);
   const [defaultMsgLoading, setDefaultMsgLoading] = useState(false);
@@ -146,7 +146,7 @@ export default function ProfilePage() {
         const updatedData = { ...parsedData, defaultMessageNo: profile.defaultMessageNo };
         localStorage.setItem('user', JSON.stringify(updatedData));
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       if (err instanceof Yup.ValidationError) {
         setDefaultMsgError(err.message);
       } else {

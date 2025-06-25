@@ -23,7 +23,7 @@ import {
   useMediaQuery,
   Grid,
 } from "@mui/material"
-import { CalendarToday, Share, Visibility } from "@mui/icons-material"
+import { Share, Visibility } from "@mui/icons-material"
 
 // Mock data structure
 interface Product {
@@ -123,7 +123,7 @@ export default function QuotationPage() {
 
   const [productGroups, setProductGroups] = useState<ProductGroup[]>([])
   const [productPricing, setProductPricing] = useState<ProductPricing>({})
-  const [currentDate, setCurrentDate] = useState("")
+ // const [currentDate, setCurrentDate] = useState("")
 
   // Mock API call
   useEffect(() => {
@@ -132,10 +132,10 @@ export default function QuotationPage() {
       setProductGroups(mockProductData)
     }, 500)
 
-    // Set current date
-    const today = new Date()
-    const formattedDate = today.toISOString().split("T")[0]
-    setCurrentDate(formattedDate)
+    // // Set current date
+    // const today = new Date()
+    // const formattedDate = today.toISOString().split("T")[0]
+    // setCurrentDate(formattedDate)
   }, [])
 
   useEffect(() => {
@@ -339,7 +339,7 @@ export default function QuotationPage() {
                       </Typography>
                       <Divider sx={{ mb: 2 }} />
                       {/* Render the rest of the fields dynamically */}
-                      {columns.filter(col => col.visible && col.key !== "sizeCategory").map((col, idx) => (
+                      {columns.filter(col => col.visible && col.key !== "sizeCategory").map((col) => (
                         <React.Fragment key={col.key}>
                           {(() => {
                             switch (col.key) {

@@ -11,7 +11,7 @@ import {
   Autocomplete,
   CircularProgress,
   Alert,
-  createFilterOptions,
+  // createFilterOptions,
 } from "@mui/material";
 import { FormatListNumbered, ArrowBack } from "@mui/icons-material";
 import { motion } from "framer-motion";
@@ -34,7 +34,7 @@ const fields = [
   // { key: "eco", label: "Eco" },
 ];
 
-const filter = createFilterOptions<string>();
+//const filter = createFilterOptions<string>();
 
 // Define a type for Autocomplete options
 type AutoOption = { label: string; value: string } | { label: string; isAddOption: true };

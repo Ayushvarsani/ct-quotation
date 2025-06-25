@@ -41,7 +41,7 @@ export default function CompanyDetailsPage() {
       updatedAt: '2024-03-20',
     });
     setLoading(false);
-  }, [1]);
+  }, []);
 
   if (loading) {
     return (

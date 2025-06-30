@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { registerCustomer } from "./db";
+import { getCustomer, registerCustomer, updateCustomer } from "./db";
 import { hashPassword } from "../../utils/passwordGenerator";
 import { DatabaseError } from "pg";
 
@@ -30,6 +30,91 @@ export async function POST(req: Request) {
     );
   } catch (error: unknown) {
     console.error("Registration error:", error);
+    if (error instanceof Error && (error as DatabaseError).code) {
+      const dbError = error as DatabaseError;
+
+      if (dbError.code === "23505") {
+        return NextResponse.json(
+          {
+            status: false,
+            msg: "Email or mobile already linked with another user",
+          },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { status: false, msg: "Internal Server Error", error },
+        { status: 500 }
+      );
+    }
+  }
+}
+export async function PUT(req: Request) {
+  try {
+    const userUuid = req.headers.get("x-user-uuid");
+    if (!userUuid) {
+      return NextResponse.json(
+        { status: false, msg: "Unauthorized access" },
+        { status: 401 }
+      );
+    }
+    const { searchParams } = new URL(req.url);
+    const customer_uuid = searchParams.get("customer_uuid");
+    const body = await req.json();
+    body.customer_uuid = customer_uuid;
+    const result = await updateCustomer(body);
+    return NextResponse.json(
+      {
+        status: result.status,
+        msg: result.msg,
+        data: result.data,
+      },
+      { status: result.status ? 200 : 400 }
+    );
+  } catch (error: unknown) {
+    console.error("Updation error:", error);
+    if (error instanceof Error && (error as DatabaseError).code) {
+      const dbError = error as DatabaseError;
+
+      if (dbError.code === "23505") {
+        return NextResponse.json(
+          {
+            status: false,
+            msg: "Email or mobile already linked with another user",
+          },
+          { status: 400 }
+        );
+      }
+      return NextResponse.json(
+        { status: false, msg: "Internal Server Error", error },
+        { status: 500 }
+      );
+    }
+  }
+}
+export async function GET(req: Request) {
+  try {
+    const userUuid = req.headers.get("x-user-uuid");
+    if (!userUuid) {
+      return NextResponse.json(
+        { status: false, msg: "Unauthorized access" },
+        { status: 401 }
+      );
+    }
+    const { searchParams } = new URL(req.url);
+    const customer_uuid = searchParams.get("customer_uuid");
+
+    const result = await getCustomer(String(customer_uuid));
+    return NextResponse.json(
+      {
+        status: result.status,
+        msg: result.msg,
+        data: result.data,
+      },
+      { status: result.status ? 200 : 400 }
+    );
+  } catch (error: unknown) {
+    console.error("Updation error:", error);
     if (error instanceof Error && (error as DatabaseError).code) {
       const dbError = error as DatabaseError;
 

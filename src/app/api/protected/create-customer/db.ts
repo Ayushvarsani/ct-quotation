@@ -10,6 +10,7 @@ export interface CustomerInfo {
   bussiness_card_module?: boolean;
   created_by_admin?: string;
   company_uuid?: string;
+  customer_uuid?: string;
 }
 
 export const registerCustomer = async (data: CustomerInfo) => {
@@ -61,4 +62,85 @@ export const registerCustomer = async (data: CustomerInfo) => {
     status: true,
     data: result.rows[0],
   };
+};
+
+export const updateCustomer = async (data: CustomerInfo) => {
+  const query = `
+    UPDATE customers SET
+      customer_name = $1,
+      customer_email = $2,
+      customer_country_code = $3,
+      customer_mobile = $4,
+      customer_role = $5,
+      quotation_module = $6,
+      bussiness_card_module = $7
+    WHERE customer_uuid = $8
+    RETURNING customer_uuid
+  `;
+
+  const values = [
+    data.customer_name ?? null,
+    data.customer_email ?? null,
+    data.customer_country_code ?? "+91",
+    data.customer_mobile ?? null,
+    data.customer_role ?? 1,
+    data.quotation_module ?? false,
+    data.bussiness_card_module ?? false,
+    data.customer_uuid,
+  ];
+
+  const result = await pool.query(query, values);
+
+  if (result.rowCount === 0) {
+    return {
+      msg: "Customer not found or update failed",
+      code: 404,
+      status: false,
+    };
+  }
+
+  return {
+    msg: "Customer updated successfully",
+    code: 200,
+    status: true,
+    data: {
+      customer_uuid: result.rows[0].customer_uuid,
+    },
+  };
+};
+
+export const getCustomer = async (customer_uuid: string) => {
+  const query = `
+    select * from customers
+    WHERE customer_uuid = $1
+  `;
+
+  const values = [customer_uuid];
+
+  try {
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return {
+        msg: "Customer not found ",
+        code: 404,
+        status: false,
+      };
+    }
+
+    return {
+      msg: "Customer get successfully",
+      code: 200,
+      status: true,
+      data: result.rows,
+    };
+  } catch (error) {
+    console.error("Error updating customer:", error);
+    return {
+      msg: "Database error occurred",
+      code: 500,
+      status: false,
+      error,
+    };
+  }
 };

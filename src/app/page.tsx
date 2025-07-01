@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState } from "react"
@@ -16,6 +16,7 @@ import {
   ErrorOutline,
   CheckCircleOutline,
 } from "@mui/icons-material"
+import axios from "axios"
 
 // Form validation schema
 const schema = yup
@@ -53,21 +54,40 @@ export default function LoginPage() {
     setLoginError("")
 
     try {
-      // Simulate API call with delay
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const res = await axios.post("/api/user-login", {
+        email: data.email,
+        password: data.password
+      })
 
-      localStorage.setItem("user", JSON.stringify({ email: data.email }))
-      localStorage.setItem("modules", JSON.stringify(["Quotation"]))
+      if (res.data.status === true) {
+        // Store user data in localStorage
+        localStorage.setItem("user", JSON.stringify({ 
+          email: data.email,
+          customeruuid: res.data.data.customer_uuid,
+          companyuuid: res.data.data.company_uuid,
+          name: res.data.data.customer_name || data.email
+        }))
+        localStorage.setItem("modules", JSON.stringify(["Quotation"]))
+        localStorage.setItem("token", res.data.data.jwt_token)
 
-      // Show success message briefly before redirecting
-      setLoginSuccess(true)
+        // Show success message briefly before redirecting
+        setLoginSuccess(true)
 
-      // Redirect after showing success message
-      setTimeout(() => {
-        router.push("/user/products")
-      }, 1000)
-    } catch (error) {
-      setLoginError("Invalid email or password. Please try again.")
+        // Redirect after showing success message
+        setTimeout(() => {
+          router.push("/user/products")
+        }, 1000)
+      } else {
+        setLoginError(res.data.message || "Login failed. Please try again.")
+      }
+    } catch (error: any) {
+      if (error.response?.data?.message) {
+        setLoginError(error.response.data.message)
+      } else if (error.response?.data?.msg) {
+        setLoginError(error.response.data.msg)
+      } else {
+        setLoginError("Invalid email or password. Please try again.")
+      }
     } finally {
       setIsLoading(false)
     }

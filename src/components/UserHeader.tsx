@@ -102,7 +102,7 @@ export default function UserHeader({ username }: HeaderProps) {
   }
 
   const confirmLogout = () => {
-    localStorage.removeItem("user")
+    localStorage.clear()
     router.push("/")
   }
   

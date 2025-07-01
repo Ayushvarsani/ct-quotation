@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import VisibilityIcon from "@mui/icons-material/Visibility"
@@ -9,59 +9,76 @@ import AddIcon from "@mui/icons-material/Add"
 import DeleteIcon from "@mui/icons-material/Delete"
 import { Button } from "@mui/material"
 import { Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton, Slide, Stack, Pagination } from "@mui/material"
+import axios from "axios"
 
 interface Product {
-  id: string
-  name: string
-  size: string
-  series: string
-  category: string
-  finish: string
-  pcsPerBox: number
-  sqFtPerBox: number
-  weight: number
+  id: number
+  product_uuid: string
+  product_name: string
+  product_category: string
+  product_size: string
+  product_series: string
+  product_finish: string
+  product_pieces_per_box: number
+  product_sq_ft_box: number
+  product_weight: number
 }
 
 export default function ProductList() {
-  const [products, setProducts] = useState<Product[]>([
-    {
-      id: "1",
-      name: "Laptop Pro",
-      size: "15-inch",
-      series: "Pro X",
-      category: "Electronics",
-      finish: "Space Gray",
-      pcsPerBox: 1,
-      sqFtPerBox: 1.5,
-      weight: 4.5,
-    },
-    {
-      id: "2",
-      name: "Wireless Mouse",
-      size: "Standard",
-      series: "Silent",
-      category: "Accessories",
-      finish: "Matte Black",
-      pcsPerBox: 50,
-      sqFtPerBox: 0.2,
-      weight: 0.25,
-    },
-    {
-      id: "3",
-      name: "Mechanical Keyboard",
-      size: "Full-size",
-      series: "Gamer",
-      category: "Accessories",
-      finish: "RGB",
-      pcsPerBox: 10,
-      sqFtPerBox: 1.2,
-      weight: 2.5,
-    },
-  ])
-
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
   // Modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const userStr = localStorage.getItem("user")
+        const user = userStr ? JSON.parse(userStr) : null
+        const company_uuid = user?.companyuuid
+        const token = localStorage.getItem("token")
+        console.log(company_uuid, token)
+
+        if (!company_uuid || !token) {
+          setProducts([])
+          setLoading(false)
+          return
+        }
+
+        const res = await axios.get("/api/protected/create-product", {
+          params: { company_uuid },
+          headers: {
+            'x-auth-token': `Bearer ${token}`
+          }
+        })
+
+        if (res.data?.status && Array.isArray(res.data.data)) {
+          setProducts(
+            res.data.data.map((item: any) => ({
+              id: item.id,
+              product_uuid: item.product_uuid,
+              product_name: item.product_name,
+              product_category: item.product_category,
+              product_size: item.product_size,
+              product_series: item.product_series,
+              product_finish: item.product_finish,
+              product_pieces_per_box: item.product_pieces_per_box,
+              product_sq_ft_box: item.product_sq_ft_box,
+              product_weight: item.product_weight,
+            }))
+          )
+        } else {
+          setProducts([])
+        }
+      } catch (error) {
+        setProducts([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProducts()
+  }, [])
 
   const handleDeleteClick = (product: Product) => {
     setProductToDelete(product)
@@ -81,13 +98,15 @@ export default function ProductList() {
     setProductToDelete(null)
   }
 
-  // const totalCount = products.length
-
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
-  const rowsPerPage = 5
+  const rowsPerPage = 10
   const maxPage = Math.ceil(products.length / rowsPerPage)
   const paginatedProducts = products.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
+
+  if (loading) {
+    return <div className="flex justify-center items-center min-h-screen">Loading...</div>
+  }
 
   return (
     <motion.div
@@ -131,26 +150,26 @@ export default function ProductList() {
                 {paginatedProducts.map((product, idx) => (
                   <tr key={product.id} className={idx % 2 === 0 ? "bg-white hover:bg-blue-50 transition" : "bg-gray-50 hover:bg-blue-50 transition"}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-base font-semibold text-gray-900">{product.name}</div>
+                      <div className="text-base font-semibold text-gray-900">{product.product_name}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.size}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.series}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.category}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.finish}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.pcsPerBox}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.sqFtPerBox}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.weight}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.product_size}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.product_series}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.product_category}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.product_finish}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.product_pieces_per_box}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.product_sq_ft_box}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.product_weight}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex gap-2">
                         <Tooltip title="View" arrow>
-                          <Link href={`/user/products/${product.id}`} className="text-blue-600 hover:text-blue-900">
+                          <Link href={`/user/products/${product.product_uuid}`} className="text-blue-600 hover:text-blue-900">
                             <IconButton size="small" color="primary">
                               <VisibilityIcon fontSize="small" />
                             </IconButton>
                           </Link>
                         </Tooltip>
                         <Tooltip title="Edit" arrow>
-                          <Link href={`/user/products/${product.id}/edit`} className="text-green-600 hover:text-green-900">
+                          <Link href={`/user/products/${product.product_uuid}/edit`} className="text-green-600 hover:text-green-900">
                             <IconButton size="small" color="success">
                               <EditIcon fontSize="small" />
                             </IconButton>
@@ -184,43 +203,43 @@ export default function ProductList() {
             >
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{product.name}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{product.product_name}</h3>
                   <div className="space-y-2">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
                       <div>
-                        <span className="font-medium">Category:</span> {product.category}
+                        <span className="font-medium">Category:</span> {product.product_category}
                       </div>
                       <div>
-                        <span className="font-medium">Size:</span> {product.size}
+                        <span className="font-medium">Size:</span> {product.product_size}
                       </div>
                       <div>
-                        <span className="font-medium">Series:</span> {product.series}
+                        <span className="font-medium">Series:</span> {product.product_series}
                       </div>
                       <div>
-                        <span className="font-medium">Finish:</span> {product.finish}
+                        <span className="font-medium">Finish:</span> {product.product_finish}
                       </div>
                       <div>
-                        <span className="font-medium">Pcs per box:</span> {product.pcsPerBox}
+                        <span className="font-medium">Pcs per box:</span> {product.product_pieces_per_box}
                       </div>
                       <div>
-                        <span className="font-medium">Sq.ft per box:</span> {product.sqFtPerBox}
+                        <span className="font-medium">Sq.ft per box:</span> {product.product_sq_ft_box}
                       </div>
                       <div>
-                        <span className="font-medium">Weight:</span> {product.weight}
+                        <span className="font-medium">Weight:</span> {product.product_weight}
                       </div>
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-2 sm:flex-col sm:gap-2">
                   <Link
-                    href={`/user/products/${product.id}`}
+                    href={`/user/products/${product.product_uuid}`}
                     className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
                   >
                     <VisibilityIcon className="w-4 h-4" />
                     View
                   </Link>
                   <Link
-                    href={`/user/products/${product.id}/edit`}
+                    href={`/user/products/${product.product_uuid}/edit`}
                     className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors"
                   >
                     <EditIcon className="w-4 h-4" />
@@ -263,7 +282,7 @@ export default function ProductList() {
           <DialogTitle id="delete-dialog-title">Confirm Delete</DialogTitle>
           <DialogContent>
             <DialogContentText id="delete-dialog-description">
-              Are you sure you want to delete <b>{productToDelete?.name}</b>? This action cannot be undone.
+              Are you sure you want to delete <b>{productToDelete?.product_name}</b>? This action cannot be undone.
             </DialogContentText>
           </DialogContent>
           <DialogActions>
@@ -277,7 +296,7 @@ export default function ProductList() {
         </Dialog>
 
         {/* Empty State */}
-        {products.length === 0 && (
+        {products.length === 0 && !loading && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 sm:p-12 text-center">
             <div className="max-w-md mx-auto">
               <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">No products found</h3>

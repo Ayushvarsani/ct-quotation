@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import VisibilityIcon from "@mui/icons-material/Visibility"
@@ -9,6 +9,7 @@ import AddIcon from "@mui/icons-material/Add"
 import DeleteIcon from "@mui/icons-material/Delete"
 import { Button } from "@mui/material"
 import { Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton, Slide, Stack, Pagination } from "@mui/material"
+import axios from "axios"
 
 interface User {
   id: string
@@ -17,27 +18,34 @@ interface User {
   mobileNumber: string
 }
 
+const fetchUsers = async (setUsers: (users: User[]) => void) => {
+  try {
+    const userStr = localStorage.getItem("user")
+    if (!userStr) return
+    const userObj = JSON.parse(userStr)
+    const company_uuid = userObj.companyuuid || userObj.company_uuid
+    if (!company_uuid) return
+    const token = localStorage.getItem("token")
+    const res = await axios.get(`/api/protected/get-all-company-users?company_uuid=${company_uuid}`,
+      token ? { headers: { "x-auth-token": `Bearer ${token}` } } : undefined
+    )
+    if (res.data && Array.isArray(res.data.data)) {
+      const apiUsers = res.data.data.map((u: any) => ({
+        id: u.customer_uuid || u.id,
+        name: u.customer_name,
+        email: u.customer_email,
+        mobileNumber: u.customer_mobile,
+      }))
+      setUsers(apiUsers)
+    }
+  } catch (err) {
+    console.error("Failed to fetch users", err)
+  }
+}
+
 export default function UserList() {
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: "1",
-      name: "Alice Johnson",
-      email: "alice@example.com",
-      mobileNumber: "9876543210",
-    },
-    {
-      id: "2",
-      name: "Bob Smith",
-      email: "bob@example.com",
-      mobileNumber: "9123456780",
-    },
-    {
-      id: "3",
-      name: "Charlie Brown",
-      email: "charlie@example.com",
-      mobileNumber: "9988776655",
-    },
-  ])
+  const [users, setUsers] = useState<User[]>([])
+  const [loading, setLoading] = useState(true)
 
   // Modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -63,9 +71,14 @@ export default function UserList() {
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
-  const rowsPerPage = 5
+  const rowsPerPage = 10
   const maxPage = Math.ceil(users.length / rowsPerPage)
   const paginatedUsers = users.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
+
+  useEffect(() => {
+    setLoading(true)
+    fetchUsers(setUsers).finally(() => setLoading(false))
+  }, [])
 
   return (
     <motion.div
@@ -190,7 +203,16 @@ export default function UserList() {
             </motion.div>
           ))}
         </div>
-
+ {/* Loading and Empty State */}
+        {loading ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 sm:p-12 text-center">
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">Loading...</h3>
+          </div>
+        ) : users.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 sm:p-12 text-center">
+            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">No data found</h3>
+          </div>
+        ) : null}
         {/* Pagination for Mobile/Tablet */}
         <Stack direction="row" justifyContent="center" mt={4} sx={{ '& .MuiPagination-ul': { gap: 1 } }}>
           <Pagination
@@ -228,22 +250,7 @@ export default function UserList() {
           </DialogActions>
         </Dialog>
 
-        {/* Empty State */}
-        {users.length === 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 sm:p-12 text-center">
-            <div className="max-w-md mx-auto">
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">No users found</h3>
-              <p className="text-gray-600 mb-6">Get started by adding your first user to the system.</p>
-              <Link
-                href="/user/users/add"
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                <AddIcon className="w-5 h-5" />
-                Add Your First User
-              </Link>
-            </div>
-          </div>
-        )}
+       
       </main>
     </motion.div>
   )

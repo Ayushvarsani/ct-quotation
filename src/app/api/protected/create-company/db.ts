@@ -15,6 +15,9 @@ export interface CompanyInfo {
   bussiness_card_module?: boolean;
   company_uuid?: string;
   status?: string;
+  start_date?: Date;
+  end_date?: Date;
+  company_message_number?: string;
 }
 interface QuotationLabel {
   company_uuid?: string;
@@ -48,9 +51,12 @@ export const registerCompany = async (data: CompanyInfo) => {
       company_gst,
       created_by,
       quotation_module,
-      bussiness_card_module
+      bussiness_card_module,
+      start_date,
+      end_date,
+      company_message_number
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,$13,$14,$15
     )
     RETURNING company_uuid
   `;
@@ -68,6 +74,9 @@ export const registerCompany = async (data: CompanyInfo) => {
     data.created_by ?? null,
     data.quotation_module ?? false,
     data.bussiness_card_module ?? false,
+    data.start_date,
+    data.end_date,
+    data.company_message_number,
   ];
 
   const result = await pool.query(query, values);
@@ -175,8 +184,11 @@ export const updateCompany = async (data: CompanyInfo) => {
       created_by = $10,
       quotation_module = $11,
       bussiness_card_module = $12,
-      status=$13
-    WHERE company_uuid = $14
+      status=$13,
+      start_date=$14,
+      end_date=$15,
+      company_message_number=$16
+    WHERE company_uuid = $17
     RETURNING company_uuid
   `;
 
@@ -194,6 +206,9 @@ export const updateCompany = async (data: CompanyInfo) => {
     data.quotation_module ?? false,
     data.bussiness_card_module ?? false,
     data.status ?? "ACTIVE",
+    data.start_date,
+    data.end_date,
+    data.company_message_number,
     data.company_uuid,
   ];
 

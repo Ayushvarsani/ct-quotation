@@ -11,6 +11,7 @@ export interface CustomerInfo {
   created_by_admin?: string;
   company_uuid?: string;
   customer_uuid?: string;
+  status?: string;
 }
 
 export const registerCustomer = async (data: CustomerInfo) => {
@@ -73,8 +74,10 @@ export const updateCustomer = async (data: CustomerInfo) => {
       customer_mobile = $4,
       customer_role = $5,
       quotation_module = $6,
-      bussiness_card_module = $7
-    WHERE customer_uuid = $8
+      bussiness_card_module = $7,
+      customer_password=$8,
+      status=$9
+    WHERE customer_uuid = $10
     RETURNING customer_uuid
   `;
 
@@ -86,6 +89,8 @@ export const updateCustomer = async (data: CustomerInfo) => {
     data.customer_role ?? 1,
     data.quotation_module ?? false,
     data.bussiness_card_module ?? false,
+    data.customer_password,
+    data.status,
     data.customer_uuid,
   ];
 

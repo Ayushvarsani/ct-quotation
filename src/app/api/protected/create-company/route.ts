@@ -21,18 +21,31 @@ export async function POST(req: Request) {
       );
     }
     const body = await req.json();
+    const moduleNames = Array.isArray(body.module) ? body.module : [];
+
     body.created_by = userUuid;
+    moduleNames.forEach((modName: string) => {
+      if (typeof modName === "string") {
+        body[modName] = true;
+      }
+    });
+    if (body.start_date) {
+      body.start_date = new Date(body.start_date);
+    }
+    if (body.end_date) {
+      body.end_date = new Date(body.end_date);
+    }
     const result = await registerCompany(body);
     body.customer_email = body.company_email;
     body.customer_name = body.company_name;
     body.customer_email = body.company_email;
     body.customer_country_code = body.company_country_code;
     body.customer_mobile = body.company_mobile;
-    body.customer_password = await hashPassword("Admin@1234");
+    body.customer_password = await hashPassword(body.company_password);
     body.customer_role = 1;
     body.company_uuid = result.data.company_uuid;
     body.created_by_admin = userUuid;
-    if (body.quotation_module) {
+    if (moduleNames.includes("quotation")) {
       await createQuotationLabel(body);
     }
     await registerCustomer(body);
@@ -77,10 +90,22 @@ export async function PUT(req: Request) {
       );
     }
     const body = await req.json();
+    const moduleNames = Array.isArray(body.module) ? body.module : [];
+    moduleNames.forEach((modName: string) => {
+      if (typeof modName === "string") {
+        body[modName] = true;
+      }
+    });
     const { searchParams } = new URL(req.url);
     const company_uuid = searchParams.get("company_uuid");
     body.company_uuid = company_uuid;
     body.created_by = userUuid;
+    if (body.start_date) {
+      body.start_date = new Date(body.start_date);
+    }
+    if (body.end_date) {
+      body.end_date = new Date(body.end_date);
+    }
     const result = await updateCompany(body);
     body.customer_email = body.company_email;
     body.customer_name = body.company_name;
@@ -88,6 +113,9 @@ export async function PUT(req: Request) {
     body.customer_country_code = body.company_country_code;
     body.customer_mobile = body.company_mobile;
     body.customer_role = 1;
+    if (body.company_password) {
+      body.customer_password = await hashPassword(body.company_password);
+    }
     body.company_uuid = result.data.company_uuid;
     body.created_by_admin = userUuid;
     if (body.quotation_module) {

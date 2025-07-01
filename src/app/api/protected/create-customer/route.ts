@@ -15,6 +15,12 @@ export async function POST(req: Request) {
     const { searchParams } = new URL(req.url);
     const company_uuid = searchParams.get("company_uuid");
     const body = await req.json();
+    const moduleNames = Array.isArray(body.module) ? body.module : [];
+    moduleNames.forEach((modName: string) => {
+      if (typeof modName === "string") {
+        body[modName] = true;
+      }
+    });
     body.customer_password = await hashPassword(body.customer_password);
     body.customer_role = 1;
     body.company_uuid = company_uuid;
@@ -61,6 +67,15 @@ export async function PUT(req: Request) {
     const { searchParams } = new URL(req.url);
     const customer_uuid = searchParams.get("customer_uuid");
     const body = await req.json();
+    const moduleNames = Array.isArray(body.module) ? body.module : [];
+    moduleNames.forEach((modName: string) => {
+      if (typeof modName === "string") {
+        body[modName] = true;
+      }
+    });
+    if (body.customer_password) {
+      body.customer_password = await hashPassword(body.customer_password);
+    }
     body.customer_uuid = customer_uuid;
     const result = await updateCustomer(body);
     return NextResponse.json(

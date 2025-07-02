@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import BusinessIcon from '@mui/icons-material/Business';
 import PersonIcon from '@mui/icons-material/Person';
+import EmailIcon from '@mui/icons-material/Email';
 // import LockIcon from '@mui/icons-material/Lock';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
@@ -16,23 +17,27 @@ import MessageIcon from '@mui/icons-material/Message';
 // import ErrorIcon from '@mui/icons-material/Error';
 // import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { Autocomplete, Checkbox, TextField,  FormControlLabel, Tooltip } from '@mui/material';
+import { ArrowBack } from '@mui/icons-material';
+import axios from 'axios';
+import { useSnackbar } from '@/app/hooks/useSnackbar';
 
 const schema = yup.object({
   companyName: yup.string().required('Company name is required'),
-  username: yup.string().email('Invalid email').required('Username is required'),
+  email: yup.string().email('Invalid email').required('Email is required'),
   password: yup.string().required('Password is required').min(8, 'Password must be at least 8 characters'),
   mobileNo: yup.string().required('Mobile number is required').matches(/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number'),
   status: yup.string().oneOf(['active', 'inactive'], 'Status must be Active or Inactive').required('Status is required'),
   defaultMessageNumber: yup.string().required('Default message number is required').matches(/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number'),
   startDate: yup.string().required('Start date is required'),
   endDate: yup.string().required('End date is required'),
-  modules: yup.array().of(yup.string().oneOf(['quotation', 'visit'])).min(1, 'Select at least one module').required('Module is required'),
+  modules: yup.array().of(yup.string().oneOf(['quotation_module', 'visit'])).min(1, 'Select at least one module').required('Module is required'),
 }).required();
 
 type CompanyFormData = yup.InferType<typeof schema>;
 
 export default function NewCompanyPage() {
   const router = useRouter();
+  const { showSnackbar } = useSnackbar();
   const [showPassword, setShowPassword] = useState(false);
   const [permissions, setPermissions] = useState({
     product: true,
@@ -86,11 +91,60 @@ export default function NewCompanyPage() {
   //   setStatusChecked(!statusChecked);
   // };
 
+  const productFieldMap = {
+    product: 'product_name',
+    size: 'product_size',
+    series: 'product_series',
+    category: 'product_category',
+    finish: 'product_finish',
+    pcsPerBox: 'product_pieces_per_box',
+    sqFtPerBox: 'product_sq_ft_box',
+    weight: 'product_weight',
+  };
+
   const onSubmit = async (data: CompanyFormData) => {
     try {
-      console.log('Company data:', data);
+      const isQuotationSelected = data.modules.includes('quotation_module');
+      let quotationFields: Record<string, any> = {};
+      if (isQuotationSelected) {
+        // Only include checked product/field fields
+        Object.entries(productFieldMap).forEach(([key, apiField]) => {
+          if (permissions[key as keyof typeof permissions]) {
+            quotationFields[apiField] = labels[key as keyof typeof labels];
+          }
+        });
+        // Always include grades as booleans
+        quotationFields.pre_grade = permissions.pre;
+        quotationFields.com_grade = permissions.com;
+        quotationFields.eco_grade = permissions.eco;
+        quotationFields.std_grade = permissions.std;
+      }
+      const requestBody = {
+        company_name: data.companyName,
+        company_email: data.email,
+        company_mobile: data.mobileNo,
+        company_password: data.password,
+        module: data.modules,
+        start_date: data.startDate,
+        end_date: data.endDate,
+        company_message_number: data.defaultMessageNumber,
+        ...(isQuotationSelected && quotationFields),
+      };
+      const token = localStorage.getItem('admin_jwt_token');
+     const response = await axios.post(
+        '/api/protected/create-company',
+        requestBody,
+        {
+          headers: {
+            'x-auth-token': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      showSnackbar(response.data.msg, 'success');
       router.push('/admin/companies');
-    } catch (error) {
+    } catch (error: any) {
+      showSnackbar(error.response.data.msg, 'error');
       console.error('Error saving company:', error);
     }
   };
@@ -110,11 +164,20 @@ export default function NewCompanyPage() {
     Object.fromEntries(fieldList.map(f => [f.key, f.label]))
   );
 
-  const isQuotationSelected = selectedModules.some(mod => mod.value === 'quotation');
+  const isQuotationSelected = selectedModules.some(mod => mod.value === 'quotation_module');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
+        {/* Back Button */}
+        <button
+            type="button"
+            className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-semibold mb-4"
+            onClick={() => router.back()}
+          >
+            <ArrowBack fontSize="small" />
+            Back
+          </button>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -143,13 +206,13 @@ export default function NewCompanyPage() {
                 </div>
                 <div className="space-y-2">
                   <TextField
-                    {...register('username')}
-                    label="Username"
-                    placeholder="Choose a username"
-                    error={!!errors.username}
-                    helperText={errors.username?.message}
+                    {...register('email')}
+                    label="Email"
+                    placeholder="Enter email"
+                    error={!!errors.email}
+                    helperText={errors.email?.message}
                     fullWidth
-                    InputProps={{ endAdornment: <PersonIcon className="text-gray-400" /> }}
+                    InputProps={{ endAdornment: <EmailIcon className="text-gray-400" /> }}
                   />
                 </div>
                 <div className="space-y-2">
@@ -245,7 +308,7 @@ export default function NewCompanyPage() {
                     multiple
                     id="module-autocomplete"
                     options={[
-                      { label: 'Quotation', value: 'quotation' },
+                      { label: 'quotation_module', value: 'quotation_module' },
                       { label: 'Visit', value: 'visit' }
                     ]}
                     getOptionLabel={option => option.label}

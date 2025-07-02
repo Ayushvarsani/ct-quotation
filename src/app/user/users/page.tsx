@@ -3,12 +3,11 @@
 import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import VisibilityIcon from "@mui/icons-material/Visibility"
 import EditIcon from "@mui/icons-material/Edit"
 import AddIcon from "@mui/icons-material/Add"
 import DeleteIcon from "@mui/icons-material/Delete"
 import { Button } from "@mui/material"
-import { Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton, Slide, Stack, Pagination } from "@mui/material"
+import { Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton, Slide, Stack, Pagination, Chip } from "@mui/material"
 import axios from "axios"
 
 interface User {
@@ -16,6 +15,17 @@ interface User {
   name: string
   email: string
   mobileNumber: string
+  status: string
+  customerRole: number
+}
+
+interface ApiUser {
+  customer_uuid: string
+  customer_name: string
+  customer_email: string
+  customer_mobile: string
+  status: string
+  customer_role: number
 }
 
 const fetchUsers = async (setUsers: (users: User[]) => void) => {
@@ -30,11 +40,13 @@ const fetchUsers = async (setUsers: (users: User[]) => void) => {
       token ? { headers: { "x-auth-token": `Bearer ${token}` } } : undefined
     )
     if (res.data && Array.isArray(res.data.data)) {
-      const apiUsers = res.data.data.map((u: any) => ({
-        id: u.customer_uuid || u.id,
+      const apiUsers = res.data.data.map((u: ApiUser) => ({
+        id: u.customer_uuid,
         name: u.customer_name,
         email: u.customer_email,
         mobileNumber: u.customer_mobile,
+        status: u.status || "ACTIVE",
+        customerRole: u.customer_role || 1,
       }))
       setUsers(apiUsers)
     }
@@ -42,6 +54,7 @@ const fetchUsers = async (setUsers: (users: User[]) => void) => {
     console.error("Failed to fetch users", err)
   }
 }
+
 
 export default function UserList() {
   const [users, setUsers] = useState<User[]>([])
@@ -107,9 +120,12 @@ export default function UserList() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">S.No</th>
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Mobile Number</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -117,19 +133,35 @@ export default function UserList() {
                 {paginatedUsers.map((user, idx) => (
                   <tr key={user.id} className={idx % 2 === 0 ? "bg-white hover:bg-blue-50 transition" : "bg-gray-50 hover:bg-blue-50 transition"}>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      {idx+1}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">  
                       <div className="text-base font-semibold text-gray-900">{user.name}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{user.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{user.mobileNumber}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      {user.customerRole}
+                     
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <Chip 
+                        label={user.status} 
+                        size="small" 
+                        sx={{
+                          color:user.status === 'ACTIVE' ? 'green' : 'red',
+                          borderColor:user.status === 'ACTIVE' ? 'green' : 'red',
+                          borderWidth:1,
+                          borderStyle:'solid',
+                          borderRadius:5,
+                          fontWeight:'bold',
+                          fontSize:12,
+                        }}
+                        variant="outlined"
+                      />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex gap-2">
-                        {/* <Tooltip title="View" arrow>
-                          <Link href={`/user/users/${user.id}`} className="text-blue-600 hover:text-blue-900">
-                            <IconButton size="small" color="primary">
-                              <VisibilityIcon fontSize="small" />
-                            </IconButton>
-                          </Link>
-                        </Tooltip> */}
                         <Tooltip title="Edit" arrow>
                           <Link href={`/user/users/${user.id}/edit`} className="text-green-600 hover:text-green-900">
                             <IconButton size="small" color="success">
@@ -173,17 +205,33 @@ export default function UserList() {
                       <div>
                         <span className="font-medium">Mobile Number:</span> {user.mobileNumber}
                       </div>
+                      <div>
+                        <span className="font-medium">Role:</span> 
+                        <Chip 
+                          label={user.customerRole} 
+                          size="small" 
+                          // color={user.customerRole === 3 ? "primary" : user.customerRole === 2 ? "secondary" : "default"}
+                          variant="outlined"
+                          className="ml-2"
+                          sx={{
+                          color:'red'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <span className="font-medium">Status:</span> 
+                        <Chip 
+                          label={user.status} 
+                          size="small" 
+                          // color={getStatusColoruser.status)}
+                          variant="outlined"
+                          className="ml-2"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
                 <div className="flex gap-2 sm:flex-col sm:gap-2">
-                  {/* <Link
-                    href={`/user/users/${user.id}`}
-                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
-                  >
-                    <VisibilityIcon className="w-4 h-4" />
-                    View
-                  </Link> */}
                   <Link
                     href={`/user/users/${user.id}/edit`}
                     className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors"

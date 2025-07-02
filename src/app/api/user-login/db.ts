@@ -1,7 +1,7 @@
 import { pool } from "../lib/db";
 
 export const loginUser = async (email: string) => {
-  const query = `select * from customers where customer_email=$1`;
+  const query = `select * from customers cs left join quotation_labels qp on cs.company_uuid=qp.company_uuid where cs.customer_email=$1`;
   const values = [email];
   const result = await pool.query(query, values);
   if (result.rowCount === 0) {

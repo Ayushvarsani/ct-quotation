@@ -7,6 +7,7 @@ export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();
     const user_data = await loginUser(email);
+    console.log(user_data);
     if (user_data.status === false) {
       return NextResponse.json(
         { status: false, msg: `Admin Not Found` },

@@ -10,7 +10,7 @@ export interface CustomerInfo {
   bussiness_card_module?: boolean;
   created_by_admin?: string;
   company_uuid?: string;
-  customer_uuid?: string;
+  customer_uuid: string;
   status?: string;
 }
 
@@ -66,7 +66,8 @@ export const registerCustomer = async (data: CustomerInfo) => {
 };
 
 export const updateCustomer = async (data: CustomerInfo) => {
-  const query = `
+  console.log(data.bussiness_card_module);
+  let query = `
     UPDATE customers SET
       customer_name = $1,
       customer_email = $2,
@@ -74,12 +75,7 @@ export const updateCustomer = async (data: CustomerInfo) => {
       customer_mobile = $4,
       customer_role = $5,
       quotation_module = $6,
-      bussiness_card_module = $7,
-      customer_password=$8,
-      status=$9
-    WHERE customer_uuid = $10
-    RETURNING customer_uuid
-  `;
+      bussiness_card_module = $7`;
 
   const values = [
     data.customer_name ?? null,
@@ -88,12 +84,22 @@ export const updateCustomer = async (data: CustomerInfo) => {
     data.customer_mobile ?? null,
     data.customer_role ?? 1,
     data.quotation_module ?? false,
-    data.bussiness_card_module ?? false,
-    data.customer_password,
-    data.status,
-    data.customer_uuid,
+    false,
   ];
-
+  let index: number = values.length + 1;
+  if (data.customer_password != null && data.customer_password != undefined) {
+    query += `,customer_password=$${index}`;
+    values.push(data.customer_password);
+    index += 1;
+  }
+  if (data.status != null && data.status != undefined) {
+    query += `,status=$${index}`;
+    values.push(data.status);
+    index += 1;
+  }
+  query += ` WHERE customer_uuid = $${index}
+    RETURNING customer_uuid`;
+  values.push(data.customer_uuid);
   const result = await pool.query(query, values);
 
   if (result.rowCount === 0) {

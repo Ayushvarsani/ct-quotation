@@ -15,9 +15,11 @@ export default function AdminLayout({
   const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
-    // Check if user is logged in
-    const user = localStorage.getItem('user');
-    if (!user) {
+    // Check if admin is logged in
+    const adminInfo = localStorage.getItem('admin_info');
+    const adminToken = localStorage.getItem('admin_jwt_token');
+    
+    if (!adminInfo || !adminToken) {
       if (pathname !== '/admin/login') {
         router.push('/admin/login');
       }
@@ -26,10 +28,10 @@ export default function AdminLayout({
     }
 
     try {
-      const userData = JSON.parse(user);
-      setUsername(userData.email || 'User');
+      const adminData = JSON.parse(adminInfo);
+      setUsername(adminData.admin_email || 'Admin');
     } catch (error) {
-      console.error('Error parsing user data:', error);
+      console.error('Error parsing admin data:', error);
       if (pathname !== '/admin/login') {
         router.push('/admin/login');
       }

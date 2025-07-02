@@ -2,7 +2,7 @@ import { pool } from "../../lib/db";
 
 export const getAllCompany = async () => {
   const query = `
-    select * from company_info;
+    select * from company_info ORDER BY created_at desc;
   `;
 
   const result = await pool.query(query);

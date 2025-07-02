@@ -283,6 +283,11 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
 
           showSnackbar(successMessage, "success", 3000)
 
+          // Redirect to product list after a short delay (to allow snackbar to show)
+          setTimeout(() => {
+            router.push("/user/products")
+          }, 1000)
+
           if (!isEditMode) {
             setFormData({})
             setInputValues({})

@@ -313,7 +313,7 @@ export const updateQuotationLabel = async (data: QuotationLabel) => {
 export const getCompany = async (company_uuid: string) => {
   const query = `
     select * from company_info ci left join quotation_labels qp on ci.company_uuid=qp.company_uuid
-    WHERE company_uuid = $1`;
+    WHERE ci.company_uuid = $1`;
 
   const values = [company_uuid];
 

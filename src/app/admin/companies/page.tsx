@@ -176,13 +176,13 @@ export default function CompanyList() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex gap-2">
-                        <Tooltip title="View" arrow>
+                        {/* <Tooltip title="View" arrow>
                           <Link href={`/admin/companies/${company.company_uuid}`} className="text-blue-600 hover:text-blue-900">
                             <IconButton size="small" color="primary">
                               <VisibilityIcon fontSize="small" />
                             </IconButton>
                           </Link>
-                        </Tooltip>
+                        </Tooltip> */}
                         <Tooltip title="Edit" arrow>
                           <Link href={`/admin/companies/${company.company_uuid}/edit`} className="text-green-600 hover:text-green-900">
                             <IconButton size="small" color="success">

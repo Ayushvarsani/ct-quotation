@@ -121,8 +121,8 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
         mobileNo: companyData.company_mobile,
         status: companyData.status,
         defaultMessageNumber: companyData.company_message_number,
-        startDate: dayjs(companyData.start_date).format('DD/MM/YYYY'),
-        endDate: dayjs(companyData.end_date).format('DD/MM/YYYY'),
+        startDate: dayjs(companyData.start_date).format('YYYY-MM-DD'),
+        endDate: dayjs(companyData.end_date).format('YYYY-MM-DD'),
         modules: companyData.module || [],
       });
 

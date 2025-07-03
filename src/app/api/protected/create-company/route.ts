@@ -164,9 +164,15 @@ export async function GET(req: Request) {
     }
     const { searchParams } = new URL(req.url);
     const company_uuid = searchParams.get("company_uuid");
-
+    const a: string[] = [];
     const result = await getCompany(String(company_uuid));
-
+    if (result.data.quotation_module) {
+      a.push("quotation_module");
+    }
+    if (result.data.bussiness_card_module) {
+      a.push("bussiness_card_module");
+    }
+    result.data.module = a;
     return NextResponse.json(
       {
         status: result.status,

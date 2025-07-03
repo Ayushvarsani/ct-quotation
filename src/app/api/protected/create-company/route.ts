@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     body.customer_role = 1;
     body.company_uuid = result.data.company_uuid;
     body.created_by_admin = userUuid;
-    if (moduleNames.includes("quotation")) {
+    if (moduleNames.includes("quotation_module")) {
       await createQuotationLabel(body);
     }
     await registerCustomer(body);

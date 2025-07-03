@@ -11,25 +11,12 @@ import {
   DialogActions,
   Autocomplete,
   CircularProgress,
-  Alert,
 } from "@mui/material"
 import { FormatListNumbered, ArrowBack } from "@mui/icons-material"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { useSnackbar } from "@/app/hooks/useSnackbar"
 import axios from "axios"
-
-// Define fields and type
-const fields = [
-  { key: "product", label: "Product Name", type: "autocomplete" },
-  { key: "size", label: "Size", type: "autocomplete" },
-  { key: "series", label: "Series" },
-  { key: "category", label: "Category" },
-  { key: "finish", label: "Finish" },
-  { key: "pcsPerBox", label: "Pcs per box" },
-  { key: "sqFtPerBox", label: "Sq.ft per box" },
-  { key: "weight", label: "Weight" },
-]
 
 // Define a type for Autocomplete options
 type AutoOption = { label: string; value: string } | { label: string; isAddOption: true }
@@ -62,18 +49,15 @@ interface DynamicProductFormProps {
 export default function DynamicProductForm({ productId, isViewMode = false }: DynamicProductFormProps) {
   const router = useRouter()
   const { showSnackbar } = useSnackbar()
-  const [permissions, setPermissions] = useState<Record<string, boolean> | null>(null)
   const [formData, setFormData] = useState<Record<string, string>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [submitSuccess, setSubmitSuccess] = useState(false)
-  const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [loading, setLoading] = useState(false)
 
   // Autocomplete dropdown options (only for 'product' and 'size')
   const [options, setOptions] = useState<Record<string, string[]>>({
-    product: [],
-    size: [],
+    product_name: [],
+    product_size: [],
   })
 
   // Dialog State
@@ -85,40 +69,20 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
   // Check if it's edit mode
   const isEditMode = !!productId
 
-  // Fetch field permissions (mocking API)
-  useEffect(() => {
-    const fetchPermissions = async () => {
-      const mockPermissions = await new Promise<Record<string, boolean>>((resolve) =>
-        setTimeout(() => {
-          resolve({
-            product: true,
-            size: true,
-            series: true,
-            category: true,
-            finish: true,
-            pcsPerBox: true,
-            sqFtPerBox: true,
-            weight: true,
-          })
-        }, 300),
-      )
-      setPermissions(mockPermissions)
-    }
-
-    fetchPermissions()
-  }, [])
+  // Move this line higher, before any useEffect that uses 'fields':
+  const [fields, setFields] = useState<{ key: string; label: string }[]>([])
 
   // Fetch product data for edit mode
   useEffect(() => {
-    if (isEditMode && productId) {
+    if (isEditMode && productId && fields.length > 0) {
       fetchProductData()
     }
-  }, [isEditMode, productId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditMode, productId, fields])
 
   const fetchProductData = async () => {
     setLoading(true)
     try {
-      // Get company UUID from localStorage.user
       const userStr = localStorage.getItem("user")
       const user = userStr ? JSON.parse(userStr) : null
       const companyUuid = user?.companyuuid
@@ -141,21 +105,14 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
       const result = response.data
       if (result.status && result.data && result.data.length > 0) {
         const productData = result.data[0]
-        // Map API response to form fields
-        setFormData({
-          product: productData.product_name || "",
-          size: productData.product_size || "",
-          series: productData.product_series || "",
-          category: productData.product_category || "",
-          finish: productData.product_finish || "",
-          pcsPerBox: productData.product_pieces_per_box?.toString() || "",
-          sqFtPerBox: productData.product_sq_ft_box?.toString() || "",
-          weight: productData.product_weight?.toString() || "",
+        const mappedData: Record<string, string> = {}
+        fields.forEach(field => {
+          mappedData[field.key] = productData[field.key] !== undefined ? String(productData[field.key] ?? "") : ""
         })
-        // Update input values for autocomplete
+        setFormData(mappedData)
         setInputValues({
-          product: productData.product_name || "",
-          size: productData.product_size || "",
+          product_name: mappedData.product_name || "",
+          product_size: mappedData.product_size || "",
         })
       }
     } catch (error) {
@@ -179,31 +136,73 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
     setDialogOpen(true)
   }
 
-  // Confirm Add New Option
-  const handleDialogAdd = () => {
-    if (dialogField && dialogValue.trim()) {
-      setOptions((prev) => {
-        const existing = prev[dialogField] || []
-        if (existing.includes(dialogValue.trim())) {
-          return prev // Do not add duplicate
-        }
-        return {
-          ...prev,
-          [dialogField]: [...existing, dialogValue.trim()],
-        }
-      })
+  // Fetch dropdown options on mount and when permissions change
+  useEffect(() => {
+    ["product_name", "product_size"].forEach(async (field) => {
+      const opts = await fetchDropdownOptions(field as "product_name" | "product_size")
+      setOptions((prev) => ({ ...prev, [field]: opts }))
+    })
+  }, [])
 
-      setFormData((prev) => ({
-        ...prev,
-        [dialogField]: dialogValue.trim(),
-      }))
+  // Update handleDialogAdd to use API for adding new options
+  const handleDialogAdd = async () => {
+    if (dialogField && dialogValue.trim()) {
+      const added = await addDropdownOption(dialogField as "product_name" | "product_size", dialogValue.trim())
+      if (added) {
+        const opts = await fetchDropdownOptions(dialogField as "product_name" | "product_size")
+        setOptions((prev) => ({ ...prev, [dialogField]: opts }))
+        setFormData((prev) => ({
+          ...prev,
+          [dialogField]: dialogValue.trim(),
+        }))
+      }
       setDialogOpen(false)
     }
   }
 
-  // API function for submitting/updating product
+  const fetchDropdownOptions = async (field: "product_name" | "product_size") => {
+    const userStr = localStorage.getItem("user")
+    const user = userStr ? JSON.parse(userStr) : null
+    const companyUuid = user?.companyuuid
+    const token = localStorage.getItem("token")
+    if (!companyUuid || !token) return []
+
+    const url = `/api/protected/${field === "product_name" ? "product-name" : "product-size"}?company_uuid=${companyUuid}`
+    try {
+      const res = await axios.get(url, {
+        headers: { "x-auth-token": `Bearer ${token}` }
+      })
+      // Adjust this if your API returns a different structure
+      return res.data?.data?.map((item: any) => item[field]) || []
+    } catch (err) {
+      showSnackbar(`Failed to fetch ${field} options`, "error", 3000)
+      return []
+    }
+  }
+
+  const addDropdownOption = async (field: "product_name" | "product_size", value: string) => {
+    const userStr = localStorage.getItem("user")
+    const user = userStr ? JSON.parse(userStr) : null
+    const companyUuid = user?.companyuuid
+    const token = localStorage.getItem("token")
+    if (!companyUuid || !token) return false
+
+    const url = `/api/protected/${field === "product_name" ? "product-name" : "product-size"}?company_uuid=${companyUuid}`
+    try {
+      await axios.post(url, {
+        [field]: value
+      }, {
+        headers: { "x-auth-token": `Bearer ${token}` }
+      })
+      showSnackbar(`Added new ${field}`, "success", 2000)
+      return true
+    } catch (err) {
+      showSnackbar(`Failed to add ${field}`, "error", 3000)
+      return false
+    }
+  }
+
   const submitProduct = async (data: Record<string, string>) => {
-    // Get company UUID from localStorage.user
     const userStr = localStorage.getItem("user")
     const user = userStr ? JSON.parse(userStr) : null
     const companyUuid = user?.companyuuid
@@ -212,15 +211,14 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
     }
 
     const payload = {
-      product_name: data.product,
-      product_category: data.category,
-      product_size: data.size,
-      product_quantity: Number.parseInt(data.quantity) || 100, // Default quantity
-      product_series: data.series,
-      product_finish: data.finish,
-      product_pieces_per_box: Number.parseInt(data.pcsPerBox) || 0,
-      product_weight: Number.parseFloat(data.weight) || 0,
-      product_sq_ft_box: Number.parseFloat(data.sqFtPerBox) || 0,
+      product_name: data.product_name,
+      product_category: data.product_category,
+      product_size: data.product_size,
+      product_series: data.product_series,
+      product_finish: data.product_finish,
+      product_pieces_per_box: data.product_pieces_per_box,
+      product_weight: data.product_weight,
+      product_sq_ft_box: data.product_sq_ft_box,
     }
 
     const url = isEditMode
@@ -263,45 +261,30 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
     let hasError = false
 
     fields.forEach((field) => {
-      if (permissions?.[field.key] && !formData[field.key]) {
+      if (!formData[field.key]) {
         newErrors[field.key] = `${field.label} is required`
         hasError = true
       }
     })
 
     setErrors(newErrors)
-    setSubmitError(null)
 
     if (!hasError) {
       setIsSubmitting(true)
       try {
         const result = await submitProduct(formData)
-
         if (result.status) {
-          setSubmitSuccess(true)
-          const successMessage = isEditMode ? "Product updated successfully!" : "Product added successfully!"
-
-          showSnackbar(successMessage, "success", 3000)
-
-          // Redirect to product list after a short delay (to allow snackbar to show)
-          setTimeout(() => {
-            router.push("/user/products")
-          }, 1000)
-
+          showSnackbar(result.msg, "success", 3000)
+          router.push("/user/products")
           if (!isEditMode) {
             setFormData({})
             setInputValues({})
           }
-
-          setTimeout(() => setSubmitSuccess(false), 3000)
         } else {
-          setSubmitError(result.message || `Failed to ${isEditMode ? "update" : "submit"} product.`)
-          showSnackbar(result.message || `Failed to ${isEditMode ? "update" : "submit"} product.`, "error", 4000)
+          showSnackbar(result.msg, "error", 3000)
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Unexpected error occurred."
-        setSubmitError(errorMessage)
-        showSnackbar(errorMessage, "error", 4000)
+        showSnackbar(err instanceof Error ? err.message : "Unexpected error occurred.", "error", 3000)
       } finally {
         setIsSubmitting(false)
       }
@@ -324,7 +307,19 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
     }
   }
 
-  if (!permissions || loading) {
+  useEffect(() => {
+    const fieldsStr = localStorage.getItem("quotation_product_fields")
+    if (fieldsStr) {
+      try {
+        const parsed = JSON.parse(fieldsStr)
+        setFields(Object.entries(parsed).map(([key, label]) => ({ key, label: String(label) })))
+      } catch (e) {
+        setFields([])
+      }
+    }
+  }, [])
+
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-40">
         <CircularProgress />
@@ -362,84 +357,81 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {fields
-                  .filter((field) => permissions[field.key])
-                  .map((field) => {
-                    const isAuto = field.type === "autocomplete"
-                    const value = formData[field.key] || ""
-                    const fieldOptions: AutoOption[] = (options[field.key] || []).map((opt) => ({
-                      label: opt,
-                      value: opt,
-                    }))
-
-                    return (
-                      <div key={field.key} className="space-y-2">
-                        {isAuto ? (
-                          <Autocomplete
-                            value={fieldOptions.find((opt) => ("value" in opt ? opt.value === value : false)) || null}
-                            onChange={(_, newVal: AutoOption | null) => {
-                              if (newVal && "isAddOption" in newVal && newVal.isAddOption) {
-                                openDialog(field.key, inputValues[field.key] || "")
-                              } else if (newVal && "value" in newVal) {
-                                handleInputChange(field.key, newVal.value)
-                              } else {
-                                handleInputChange(field.key, "")
-                              }
-                            }}
-                            inputValue={inputValues[field.key] || ""}
-                            onInputChange={(_, newInputValue) => {
-                              setInputValues((prev) => ({
-                                ...prev,
-                                [field.key]: newInputValue,
-                              }))
-                            }}
-                            options={fieldOptions as AutoOption[]}
-                            filterOptions={(opts) => [...opts, { label: "Add", isAddOption: true } as AutoOption]}
-                            getOptionLabel={(option) => option.label}
-                            isOptionEqualToValue={(option, value) =>
-                              "value" in option && "value" in value && option.value === value.value
+                {fields.map((field) => {
+                  const isAuto = field.key === "product_name" || field.key === "product_size"
+                  const value = formData[field.key] || ""
+                  const fieldOptions: AutoOption[] = (options[field.key] || []).map((opt) => ({
+                    label: opt,
+                    value: opt,
+                  }))
+                  return (
+                    <div key={field.key} className="space-y-2">
+                      {isAuto ? (
+                        <Autocomplete
+                          value={fieldOptions.find((opt) => ("value" in opt ? opt.value === value : false)) || null}
+                          onChange={(_, newVal: AutoOption | null) => {
+                            if (newVal && "isAddOption" in newVal && newVal.isAddOption) {
+                              openDialog(field.key, inputValues[field.key] || "")
+                            } else if (newVal && "value" in newVal) {
+                              handleInputChange(field.key, newVal.value)
+                            } else {
+                              handleInputChange(field.key, "")
                             }
-                            disabled={isViewMode}
-                            renderOption={(props, option) => {
-                              const opt = option as AutoOption
-                              return (
-                                <li {...props} key={opt.label}>
-                                  {"isAddOption" in opt && opt.isAddOption ? (
-                                    <Button variant="outlined" color="primary" fullWidth>
-                                      {opt.label}
-                                    </Button>
-                                  ) : (
-                                    opt.label
-                                  )}
-                                </li>
-                              )
-                            }}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label={field.label}
-                                variant="outlined"
-                                size="small"
-                                error={!!errors[field.key]}
-                                helperText={errors[field.key]}
-                              />
-                            )}
-                          />
-                        ) : (
-                          <TextField
-                            fullWidth
-                            size="small"
-                            label={field.label}
-                            value={value}
-                            onChange={(e) => handleInputChange(field.key, e.target.value)}
-                            error={!!errors[field.key]}
-                            helperText={errors[field.key]}
-                            disabled={isViewMode}
-                          />
-                        )}
-                      </div>
-                    )
-                  })}
+                          }}
+                          inputValue={inputValues[field.key] || ""}
+                          onInputChange={(_, newInputValue) => {
+                            setInputValues((prev) => ({
+                              ...prev,
+                              [field.key]: newInputValue,
+                            }))
+                          }}
+                          options={fieldOptions as AutoOption[]}
+                          filterOptions={(opts) => [...opts, { label: "Add", isAddOption: true } as AutoOption]}
+                          getOptionLabel={(option) => option.label}
+                          isOptionEqualToValue={(option, value) =>
+                            "value" in option && "value" in value && option.value === value.value
+                          }
+                          disabled={isViewMode}
+                          renderOption={(props, option) => {
+                            const opt = option as AutoOption
+                            return (
+                              <li {...props} key={opt.label}>
+                                {"isAddOption" in opt && opt.isAddOption ? (
+                                  <Button variant="outlined" color="primary" fullWidth>
+                                    {opt.label}
+                                  </Button>
+                                ) : (
+                                  opt.label
+                                )}
+                              </li>
+                            )
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label={field.label}
+                              variant="outlined"
+                              size="small"
+                              error={!!errors[field.key]}
+                              helperText={errors[field.key]}
+                            />
+                          )}
+                        />
+                      ) : (
+                        <TextField
+                          fullWidth
+                          size="small"
+                          label={field.label}
+                          value={value}
+                          onChange={(e) => handleInputChange(field.key, e.target.value)}
+                          error={!!errors[field.key]}
+                          helperText={errors[field.key]}
+                          disabled={isViewMode}
+                        />
+                      )}
+                    </div>
+                  )
+                })}
               </div>
 
               {!isViewMode && (
@@ -463,18 +455,6 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
                     {isSubmitting ? <CircularProgress size={22} color="inherit" /> : isEditMode ? "Update" : "Submit"}
                   </motion.button>
                 </div>
-              )}
-
-              {submitSuccess && (
-                <Alert severity="success" sx={{ mt: 3 }}>
-                  {isEditMode ? "Product updated successfully!" : "Product added successfully!"}
-                </Alert>
-              )}
-
-              {submitError && (
-                <Alert severity="error" sx={{ mt: 3 }}>
-                  {submitError}
-                </Alert>
               )}
             </form>
 

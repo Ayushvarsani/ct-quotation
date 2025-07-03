@@ -98,6 +98,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
     pcsPerBox: 'product_pieces_per_box',
     sqFtPerBox: 'product_sq_ft_box',
     weight: 'product_weight',
+    status: 'status',
   };
 
   // Load company data for edit mode
@@ -123,20 +124,35 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
         defaultMessageNumber: companyData.company_message_number,
         startDate: dayjs(companyData.start_date).format('YYYY-MM-DD'),
         endDate: dayjs(companyData.end_date).format('YYYY-MM-DD'),
-        modules: companyData.module || [],
       });
 
-      // Set modules
-      if (companyData.module) {
-        const moduleOptions = companyData.module.map((mod: string) => ({
-          label: mod === 'quotation_module' ? 'quotation_module' : mod,
-          value: mod
-        }));
-        setSelectedModules(moduleOptions);
-      }
+      // Update labels with API response values
+      const newLabels = { ...labels };
+      Object.entries(productFieldMap).forEach(([key, apiField]) => {
+        if (companyData[apiField]) {
+          newLabels[key] = companyData[apiField];
+        }
+      });
+      setLabels(newLabels);
+
+      const moduleKeys = [
+        'quotation_module',
+        'bussiness_card_module',
+        // add more module keys here if needed
+      ];
+
+      const modules = moduleKeys.filter(key => companyData[key] === true);
+
+      const moduleOptions = modules.map(mod => ({
+        label: mod,
+        value: mod
+      }));
+
+      setSelectedModules(moduleOptions);
+      setValue('modules', modules);
 
       // Set permissions if quotation module exists
-      if (companyData.module?.includes('quotation_module')) {
+      if (companyData.quotation_module === true) {
         const newPermissions = { ...permissions };
         
         // Set field permissions
@@ -195,6 +211,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
         company_mobile: data.mobileNo,
         company_password: data.password,
         module: data.modules,
+        status: data.status,
         start_date: data.startDate,
         end_date: data.endDate,
         company_message_number: data.defaultMessageNumber,
@@ -366,7 +383,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
                 <div className="space-y-2">
                   <Autocomplete
                     id="status-autocomplete"
-                    options={[{ label: 'Active', value: 'ACTIVE' }, { label: 'INACTIVE', value: 'INACTIVE' }]}
+                    options={[{ label: 'ACTIVE', value: 'ACTIVE' }, { label: 'INACTIVE', value: 'INACTIVE' }]}
                     getOptionLabel={option => option.label}
                     value={{ label: status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE', value: status }}
                     onChange={(_, newValue) => {

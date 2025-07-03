@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import * as yup from 'yup';
 import axios from 'axios';
 import { Autocomplete, Checkbox, TextField } from '@mui/material';
-import { Visibility, VisibilityOff, Person, Email, Phone, Lock,ArrowBack } from '@mui/icons-material';
+import { Visibility, VisibilityOff, Person, Email, Phone, Lock, ArrowBack } from '@mui/icons-material';
 import { useSnackbar } from '@/app/hooks/useSnackbar';
 import { useRouter } from 'next/navigation';
 
@@ -15,15 +15,30 @@ interface UserFormData {
   mobileNumber: string;
   password: string;
   confirmPassword: string;
+  status: string;
+}
+
+interface UserFormProps {
+  userId?: string;
+  mode?: 'create' | 'edit';
 }
 
 const userSchema = yup.object().shape({
   name: yup.string().required('Name is required').min(2, 'Name must be at least 2 characters'),
   email: yup.string().required('Email is required').email('Please enter a valid email address'),
   mobileNumber: yup.string().required('Mobile number is required').matches(/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number'),
-  password: yup.string().required('Password is required').min(6, 'Password must be at least 6 characters'),
-  confirmPassword: yup.string().required('Please confirm your password').oneOf([yup.ref('password')], 'Passwords do not match'),
+  password: yup.string().when('mode', {
+    is: (mode: string) => mode === 'create',
+    then: schema => schema.required('Password is required').min(6, 'Password must be at least 6 characters'),
+    otherwise: schema => schema,
+  }),
+  confirmPassword: yup.string().when('mode', {
+    is: (mode: string) => mode === 'create',
+    then: schema => schema.required('Please confirm your password').oneOf([yup.ref('password')], 'Passwords do not match'),
+    otherwise: schema => schema,
+  }),
   modules: yup.array().min(1, 'Select at least one module'),
+  status: yup.string().oneOf(['ACTIVE', 'INACTIVE'], 'Status must be Active or Inactive').required('Status is required'),
 });
 
 const initialFormData: UserFormData = {
@@ -32,9 +47,10 @@ const initialFormData: UserFormData = {
   mobileNumber: '',
   password: '',
   confirmPassword: '',
+  status: 'ACTIVE',
 };
 
-const UsersPage: React.FC = () => {
+const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
   const { showSnackbar } = useSnackbar();
   const router = useRouter();
   const [formData, setFormData] = useState<UserFormData>(initialFormData);
@@ -44,6 +60,11 @@ const UsersPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedModules, setSelectedModules] = useState<{ label: string; value: string }[]>([]);
   const [moduleOptions, setModuleOptions] = useState<{ label: string; value: string }[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [statusOptions] = useState([
+    { label: 'Active', value: 'ACTIVE' },
+    { label: 'Inactive', value: 'INACTIVE' },
+  ]);
 
   useEffect(() => {
     // Load module options from localStorage
@@ -66,10 +87,62 @@ const UsersPage: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (mode === 'edit' && userId) {
+      fetchUserData(userId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, mode]);
+
+  const fetchUserData = async (id: string) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        showSnackbar('Auth token not found. Please login again.', 'error', 4000);
+        setLoading(false);
+        return;
+      }
+      const response = await axios.get(`/api/protected/create-customer?customer_uuid=${id}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'x-auth-token': `Bearer ${token}`,
+        },
+      });
+      const user = response.data.data[0];
+      setFormData({
+        name: user.customer_name || '',
+        email: user.customer_email || '',
+        mobileNumber: user.customer_mobile || '',
+        password: '', // Don't prefill password
+        confirmPassword: '',
+        status: user.status || 'ACTIVE',
+      });
+      // Set modules if present
+      if (user.module && Array.isArray(user.module)) {
+        setSelectedModules(
+          user.module.map((mod: string) => ({
+            label: mod.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            value: mod,
+          }))
+        );
+      } else if (user.quotation_module || user.business_card_module) {
+        const mods = [];
+        if (user.quotation_module) mods.push({ label: 'Quotation Module', value: 'quotation_module' });
+        if (user.business_card_module) mods.push({ label: 'Business Card Module', value: 'business_card_module' });
+        setSelectedModules(mods);
+      }
+    } catch (error: any) {
+      showSnackbar('Failed to fetch user data', 'error', 4000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const validateForm = async (): Promise<boolean> => {
     try {
       await userSchema.validate(
-        { ...formData, modules: selectedModules },
+        { ...formData, modules: selectedModules, mode },
         { abortEarly: false }
       );
       setErrors({});
@@ -129,7 +202,7 @@ const UsersPage: React.FC = () => {
     } catch {
       companyUUID = '';
     }
-    if (!companyUUID) {
+    if (mode === 'create' && !companyUUID) {
       showSnackbar('Company UUID not found. Please login again.', 'error', 4000);
       setIsSubmitting(false);
       return;
@@ -143,45 +216,72 @@ const UsersPage: React.FC = () => {
       return;
     }
 
-    const payload = {
+    // Prepare modules array for API
+    const modulesArr = selectedModules.map(mod => mod.value);
+
+    const payload: any = {
       customer_name: formData.name,
       customer_email: formData.email,
-      customer_password: formData.password,
-      // customer_country_code: '+91', // TODO: Make dynamic if needed
       customer_mobile: formData.mobileNumber,
-     // customer_role: 1, // TODO: Make dynamic if needed
-      quotation_module: true, // TODO: Make dynamic if needed
-      // bussiness_card_module: false, // TODO: Make dynamic if needed
+      customer_role: 1, // TODO: Make dynamic if needed
+      module: modulesArr,
+      quotation_module: modulesArr.includes('quotation_module'),
+      business_card_module: modulesArr.includes('business_card_module'),
+      status: formData.status,
     };
+    if (mode === 'create' || formData.password) {
+      payload.customer_password = formData.password;
+    }
+    if (mode === 'edit') {
+      payload.customer_country_code = '+91'; // TODO: Make dynamic if needed
+    }
 
     try {
-      const response = await axios.post(`/api/protected/create-customer?company_uuid=${companyUUID}`, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': `Bearer ${token}`,
-        },
-      });
+      let response;
+      if (mode === 'edit' && userId) {
+        response = await axios.put(`/api/protected/create-customer?customer_uuid=${userId}`,
+          payload,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'x-auth-token': `Bearer ${token}`,
+            },
+          }
+        );
+      } else {
+        response = await axios.post(`/api/protected/create-customer?company_uuid=${companyUUID}`,
+          payload,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              'x-auth-token': `Bearer ${token}`,
+            },
+          }
+        );
+      }
       showSnackbar(response.data.msg, 'success', 3000);
       clearForm();
       router.push('/user/users');
     } catch (error: any) {
-      console.error('Error adding user:', error);
-      showSnackbar(error.response.data.msg, 'error', 4000);
+      console.error('Error submitting user:', error);
+      showSnackbar(error.response?.data?.msg || 'Error submitting user', 'error', 4000);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  if (loading) {
+    return <div className="flex justify-center items-center h-40">Loading...</div>;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-2xl mx-auto">
         {/* Back Button - left aligned, above the title */}
-        <div >
-         
-        </div>
+        <div></div>
         {/* Title */}
         <div className="text-center mb-8">
-        <button
+          <button
             type="button"
             className="flex items-center gap-2 text-indigo-600 hover:text-indigo-800 font-semibold"
             onClick={() => router.back()}
@@ -189,7 +289,9 @@ const UsersPage: React.FC = () => {
             <ArrowBack fontSize="small" />
             Back
           </button>
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">Add New User</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-900">
+            {mode === 'edit' ? 'Edit User' : 'Add New User'}
+          </h1>
         </div>
         <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
           <div className="p-6 sm:p-8">
@@ -246,10 +348,11 @@ const UsersPage: React.FC = () => {
                 {errors.mobileNumber && <p className="text-red-500 text-sm">{errors.mobileNumber}</p>}
               </div>
 
-              {/* Password Fields */}
+            
+              {/* Password Fields (only for create or if editing and changing password) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password *</label>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password {mode === 'create' ? '*' : ''}</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                     <input
@@ -258,7 +361,7 @@ const UsersPage: React.FC = () => {
                       value={formData.password}
                       onChange={e => handleInputChange('password', e.target.value)}
                       className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.password ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'}`}
-                      placeholder="Enter password"
+                      placeholder={mode === 'edit' ? 'Leave blank to keep unchanged' : 'Enter password'}
                     />
                     <button
                       type="button"
@@ -271,7 +374,7 @@ const UsersPage: React.FC = () => {
                   {errors.password && <p className="text-red-500 text-sm">{errors.password}</p>}
                 </div>
                 <div className="space-y-2">
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password *</label>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">Confirm Password {mode === 'create' ? '*' : ''}</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                     <input
@@ -280,7 +383,7 @@ const UsersPage: React.FC = () => {
                       value={formData.confirmPassword}
                       onChange={e => handleInputChange('confirmPassword', e.target.value)}
                       className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.confirmPassword ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'}`}
-                      placeholder="Confirm password"
+                      placeholder={mode === 'edit' ? 'Leave blank to keep unchanged' : 'Confirm password'}
                     />
                     <button
                       type="button"
@@ -294,7 +397,7 @@ const UsersPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Module Autocomplete Field */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Autocomplete
                   multiple
@@ -329,6 +432,42 @@ const UsersPage: React.FC = () => {
                   disableCloseOnSelect
                 />
               </div>
+              <div className="space-y-2">
+                  {/* Status Field */}  
+                <Autocomplete
+                  id="status-autocomplete"
+                  options={statusOptions}
+                  getOptionLabel={option => option.label}
+                  value={statusOptions.find(opt => opt.value === formData.status) || statusOptions[0]}
+                  onChange={(_, newValue) => {
+                    if (newValue) handleInputChange('status', newValue.value);
+                  }}
+                  renderInput={params => (
+                    <TextField
+                      {...params}
+                      name="status"
+                      label="Status"
+                      error={!!errors.status}
+                      helperText={errors.status}
+                      placeholder="Select status"
+                      fullWidth
+                    />
+                  )}
+                  renderOption={(props, option) => (
+                    <li {...props} key={option.value} className="flex items-center gap-2">
+                      <Checkbox
+                        checked={formData.status === option.value}
+                        tabIndex={-1}
+                        disableRipple
+                        inputProps={{ 'aria-label': option.label }}
+                      />
+                      {option.label}
+                    </li>
+                  )}
+                  disableCloseOnSelect
+                />
+              </div>
+              </div>
 
               {/* Submit/Cancel Buttons */}
               <div className="pt-4 flex gap-4">
@@ -351,7 +490,7 @@ const UsersPage: React.FC = () => {
                       Submitting...
                     </>
                   ) : (
-                    <>Submit</>
+                    <>{mode === 'edit' ? 'Update' : 'Submit'}</>
                   )}
                 </button>
               </div>
@@ -363,4 +502,4 @@ const UsersPage: React.FC = () => {
   );
 };
 
-export default UsersPage;
+export default UserForm; 

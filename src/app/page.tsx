@@ -67,8 +67,30 @@ export default function LoginPage() {
           companyuuid: res.data.data.company_uuid,
           name: res.data.data.customer_name || data.email
         }))
-        localStorage.setItem("modules", JSON.stringify(["Quotation"]))
+        // Dynamically set enabled modules
+        const modules = []
+        if (res.data.data.quotation_module) modules.push("Quotation")
+        if (res.data.data.bussiness_card_module) modules.push("Business_Card")
+        // Add more modules here as needed
+        localStorage.setItem("modules", JSON.stringify(modules))
         localStorage.setItem("token", res.data.data.jwt_token)
+
+        if (res.data.data.quotation_module) {
+          const allFields = {
+            product_name: res.data.data.product_name,
+            product_size: res.data.data.product_size,
+            product_category: res.data.data.product_category,
+            product_series: res.data.data.product_series,
+            product_finish: res.data.data.product_finish,
+            product_pieces_per_box: res.data.data.product_pieces_per_box,
+            product_weight: res.data.data.product_weight,
+            product_sq_ft_box: res.data.data.product_sq_ft_box,
+          };
+          const productFields = Object.fromEntries(
+            Object.entries(allFields).filter(([_, v]) => v != null && v !== "")
+          );
+          localStorage.setItem("quotation_product_fields", JSON.stringify(productFields));
+        }
 
         // Show success message briefly before redirecting
         setLoginSuccess(true)

@@ -272,6 +272,22 @@ export default function CompanyList() {
           ))}
         </div>
 
+{/* Empty State */}
+{companies.length === 0 && !loading && (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 sm:p-12 text-center">
+            <div className="max-w-md mx-auto">
+              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">No companies found</h3>
+              <p className="text-gray-600 mb-6">Get started by adding your first company to the system.</p>
+              <Link
+                href="/admin/companies/create"
+                className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                <AddIcon className="w-5 h-5" />
+                Add Your First Company
+              </Link>
+            </div>
+          </div>
+        )}
         {/* Pagination for Mobile/Tablet */}
         <Stack direction="row" justifyContent="center" mt={4} sx={{ '& .MuiPagination-ul': { gap: 1 } }}>
           <Pagination
@@ -309,22 +325,7 @@ export default function CompanyList() {
           </DialogActions>
         </Dialog>
 
-        {/* Empty State */}
-        {companies.length === 0 && !loading && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 sm:p-12 text-center">
-            <div className="max-w-md mx-auto">
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">No companies found</h3>
-              <p className="text-gray-600 mb-6">Get started by adding your first company to the system.</p>
-              <Link
-                href="/admin/companies/create"
-                className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                <AddIcon className="w-5 h-5" />
-                Add Your First Company
-              </Link>
-            </div>
-          </div>
-        )}
+        
       </main>
     </motion.div>
   )

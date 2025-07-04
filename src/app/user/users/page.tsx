@@ -55,6 +55,37 @@ const fetchUsers = async (setUsers: (users: User[]) => void) => {
   }
 }
 
+const getStatusChipStyles = (status: string) => {
+  switch (status) {
+    case "ACTIVE":
+      return {
+        sx: {
+          backgroundColor: '#d1fae5', // green-100
+          color: '#065f46', // green-800
+          borderColor: '#6ee7b7', // green-300
+        },
+        iconColor: '#22c55e', // green-500
+      }
+    case "INACTIVE":
+      return {
+        sx: {
+          backgroundColor: '#fee2e2', // red-100
+          color: '#991b1b', // red-800
+          borderColor: '#fca5a5', // red-300
+        },
+        iconColor: '#ef4444', // red-500
+      }
+    default:
+      return {
+        sx: {
+          backgroundColor: '#f3f4f6', // gray-100
+          color: '#374151', // gray-800
+          borderColor: '#d1d5db', // gray-300
+        },
+        iconColor: '#6b7280', // gray-500
+      }
+  }
+}
 
 export default function UserList() {
   const [users, setUsers] = useState<User[]>([])
@@ -141,23 +172,25 @@ export default function UserList() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{user.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{user.mobileNumber}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                      {user.customerRole}
-                     
+                      <Chip 
+                        label={user.customerRole === 1 ? "ADMIN" : user.customerRole === 2 ? "STAFF" : user.customerRole} 
+                        size="small" 
+                        // color={user.customerRole === 3 ? "primary" : user.customerRole === 2 ? "secondary" : "default"}
+                        variant="outlined"
+                        className="ml-2"
+                        sx={{
+                        color:'red'
+                        }}
+                      />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                       <Chip 
                         label={user.status} 
                         size="small" 
-                        sx={{
-                          color:user.status === 'ACTIVE' ? 'green' : 'red',
-                          borderColor:user.status === 'ACTIVE' ? 'green' : 'red',
-                          borderWidth:1,
-                          borderStyle:'solid',
-                          borderRadius:5,
-                          fontWeight:'bold',
-                          fontSize:12,
-                        }}
                         variant="outlined"
+                        className="ml-2"
+                        sx={getStatusChipStyles(user.status).sx}
+                         
                       />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -190,8 +223,8 @@ export default function UserList() {
           {paginatedUsers.map((user) => (
             <motion.div
               key={user.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              // initial={{ opacity: 0, y: 10 }}
+              // animate={{ opacity: 1, y: 0 }}
               className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
             >
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
@@ -208,7 +241,7 @@ export default function UserList() {
                       <div>
                         <span className="font-medium">Role:</span> 
                         <Chip 
-                          label={user.customerRole} 
+                          label={user.customerRole === 1 ? "ADMIN" : user.customerRole === 2 ? "STAFF" : user.customerRole} 
                           size="small" 
                           // color={user.customerRole === 3 ? "primary" : user.customerRole === 2 ? "secondary" : "default"}
                           variant="outlined"
@@ -223,9 +256,10 @@ export default function UserList() {
                         <Chip 
                           label={user.status} 
                           size="small" 
-                          // color={getStatusColoruser.status)}
                           variant="outlined"
                           className="ml-2"
+                          sx={getStatusChipStyles(user.status).sx}
+                          icon={<span style={{ width: 8, height: 8, borderRadius: '50%', display: 'inline-block', background: getStatusChipStyles(user.status).iconColor }} />}
                         />
                       </div>
                     </div>

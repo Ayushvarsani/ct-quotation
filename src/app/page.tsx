@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
@@ -69,8 +70,8 @@ export default function LoginPage() {
         }))
         // Dynamically set enabled modules
         const modules = []
-        if (res.data.data.quotation_module) modules.push("Quotation")
-        if (res.data.data.bussiness_card_module) modules.push("Business_Card")
+        if (res.data.data.quotation_module) modules.push("quotation_module")
+        if (res.data.data.bussiness_card_module) modules.push("bussiness_card_module")
         // Add more modules here as needed
         localStorage.setItem("modules", JSON.stringify(modules))
         localStorage.setItem("token", res.data.data.jwt_token)
@@ -90,6 +91,19 @@ export default function LoginPage() {
             Object.entries(allFields).filter(([_, v]) => v != null && v !== "")
           );
           localStorage.setItem("quotation_product_fields", JSON.stringify(productFields));
+        }
+
+        if(res.data.data.quotation_module){
+          const gradeFields = {
+            pre_grade: res.data.data.pre_grade,
+            std_grade: res.data.data.std_grade,
+            eco_grade: res.data.data.eco_grade,
+            com_grade: res.data.data.com_grade
+          };
+          const gradeFieldsData = Object.fromEntries(
+            Object.entries(gradeFields).filter(([_, v]) => v != null && v !== "")
+          );
+          localStorage.setItem("quotation_grade_fields", JSON.stringify(gradeFieldsData));
         }
 
         // Show success message briefly before redirecting
@@ -132,12 +146,7 @@ export default function LoginPage() {
       <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-indigo-600 to-purple-700 p-12 relative overflow-hidden">
         <div className="relative z-10 flex flex-col h-full justify-between">
           <div>
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="flex items-center"
-            >
+            <motion.div>
               <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center mr-3">
                 <span className="text-indigo-600 font-bold text-xl">Q</span>
               </div>

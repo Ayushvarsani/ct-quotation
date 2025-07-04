@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import Link from "next/link"
-import VisibilityIcon from "@mui/icons-material/Visibility"
 import EditIcon from "@mui/icons-material/Edit"
 import AddIcon from "@mui/icons-material/Add"
 import DeleteIcon from "@mui/icons-material/Delete"
@@ -11,18 +10,9 @@ import { Button } from "@mui/material"
 import { Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton, Slide, Stack, Pagination } from "@mui/material"
 import axios from "axios"
 
-interface Product {
-  id: number
-  product_uuid: string
-  product_name: string
-  product_category: string
-  product_size: string
-  product_series: string
-  product_finish: string
-  product_pieces_per_box: number
-  product_sq_ft_box: number
-  product_weight: number
-}
+// Update Product type for dynamic fields
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Product = { id: number, product_uuid: string } & { [key: string]: any }
 
 export default function ProductList() {
   const [products, setProducts] = useState<Product[]>([])
@@ -30,6 +20,24 @@ export default function ProductList() {
   // Modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<Product | null>(null)
+
+  // Dynamic fields from localStorage
+  const [dynamicFields, setDynamicFields] = useState<{ key: string, label: string }[]>([])
+
+  useEffect(() => {
+    // Get dynamic fields from localStorage
+    const fieldsStr = localStorage.getItem("quotation_product_fields")
+    if (fieldsStr) {
+      try {
+        const fieldsObj = JSON.parse(fieldsStr)
+        const fieldsArr = Object.entries(fieldsObj).map(([key, label]) => ({ key, label: label as string }))
+        setDynamicFields(fieldsArr)
+      } catch (e) {
+        console.error("Failed to parse dynamic fields from localStorage:", e)
+        setDynamicFields([])
+      }
+    }
+  }, [])
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -54,24 +62,12 @@ export default function ProductList() {
         })
 
         if (res.data?.status && Array.isArray(res.data.data)) {
-          setProducts(
-            res.data.data.map((item: any) => ({
-              id: item.id,
-              product_uuid: item.product_uuid,
-              product_name: item.product_name,
-              product_category: item.product_category,
-              product_size: item.product_size,
-              product_series: item.product_series,
-              product_finish: item.product_finish,
-              product_pieces_per_box: item.product_pieces_per_box,
-              product_sq_ft_box: item.product_sq_ft_box,
-              product_weight: item.product_weight,
-            }))
-          )
+          setProducts(res.data.data)
         } else {
           setProducts([])
         }
       } catch (error) {
+        console.error("Failed to fetch products:", error)
         setProducts([])
       } finally {
         setLoading(false)
@@ -135,30 +131,18 @@ export default function ProductList() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Product Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Size</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Series</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Finish</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Pcs per box</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Sq.ft per box</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Weight</th>
+                  {dynamicFields.map(field => (
+                    <th key={field.key} className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">{field.label}</th>
+                  ))}
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedProducts.map((product, idx) => (
                   <tr key={product.id} className={idx % 2 === 0 ? "bg-white hover:bg-blue-50 transition" : "bg-gray-50 hover:bg-blue-50 transition"}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-base font-semibold text-gray-900">{product.product_name}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.product_size}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.product_series}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.product_category}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.product_finish}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.product_pieces_per_box}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.product_sq_ft_box}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product.product_weight}</td>
+                    {dynamicFields.map(field => (
+                      <td key={field.key} className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{product[field.key]}</td>
+                    ))}
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex gap-2">
                         {/* <Tooltip title="View" arrow>
@@ -197,36 +181,20 @@ export default function ProductList() {
           {paginatedProducts.map((product) => (
             <motion.div
               key={product.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              // initial={{ opacity: 0, y: 10 }}
+              // animate={{ opacity: 1, y: 0 }}
               className="bg-white rounded-xl shadow-md border border-gray-200 p-4 sm:p-6"
             >
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{product.product_name}</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">{product[dynamicFields[0]?.key]}</h3>
                   <div className="space-y-2">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
-                      <div>
-                        <span className="font-medium">Category:</span> {product.product_category}
-                      </div>
-                      <div>
-                        <span className="font-medium">Size:</span> {product.product_size}
-                      </div>
-                      <div>
-                        <span className="font-medium">Series:</span> {product.product_series}
-                      </div>
-                      <div>
-                        <span className="font-medium">Finish:</span> {product.product_finish}
-                      </div>
-                      <div>
-                        <span className="font-medium">Pcs per box:</span> {product.product_pieces_per_box}
-                      </div>
-                      <div>
-                        <span className="font-medium">Sq.ft per box:</span> {product.product_sq_ft_box}
-                      </div>
-                      <div>
-                        <span className="font-medium">Weight:</span> {product.product_weight}
-                      </div>
+                      {dynamicFields.map(field => (
+                        <div key={field.key}>
+                          <span className="font-medium">{field.label}:</span> {product[field.key]}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </div>

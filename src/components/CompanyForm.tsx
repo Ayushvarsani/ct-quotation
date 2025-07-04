@@ -60,6 +60,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
 
   const [selectedModules, setSelectedModules] = useState<{ label: string, value: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [moduleOptions, setModuleOptions] = useState<{ label: string; value: string }[]>([]);
 
   const handlePermissionChange = (field: keyof typeof permissions) => {
     setPermissions(prev => ({
@@ -101,6 +102,40 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
     status: 'status',
   };
 
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('modules');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Map known values to user-friendly labels
+        const labelMap: Record<string, string> = {
+          quotation_module: 'Quotation',
+          business_card_module: 'Business Card',
+        };
+        const options = Array.isArray(parsed)
+          ? parsed.map((mod: any) => {
+              const value = mod.value ?? mod.label ?? String(mod);
+              return {
+                label: labelMap[value] || value,
+                value,
+              };
+            })
+          : [];
+        setModuleOptions(options);
+      } else {
+        setModuleOptions([
+          { label: 'Quotation', value: 'quotation_module' },
+          { label: 'Business Card', value: 'business_card_module' },
+        ]);
+      }
+    } catch {
+      setModuleOptions([
+        { label: 'Quotation', value: 'quotation_module' },
+        { label: 'Business Card', value: 'business_card_module' },
+      ]);
+    }
+  }, []);
+
   // Load company data for edit mode
   const fetchCompanyData = async () => {
     try {
@@ -135,21 +170,18 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
       });
       setLabels(newLabels);
 
-      const moduleKeys = [
-        'quotation_module',
-        'bussiness_card_module',
-        // add more module keys here if needed
-      ];
-
-      const modules = moduleKeys.filter(key => companyData[key] === true);
-
-      const moduleOptions = modules.map(mod => ({
-        label: mod,
-        value: mod
-      }));
-
-      setSelectedModules(moduleOptions);
-      setValue('modules', modules);
+      // Prefill selectedModules using moduleOptions and companyData booleans
+      const mods = [];
+      if (companyData.quotation_module) {
+        const found = moduleOptions.find(opt => opt.value === 'quotation_module');
+        if (found) mods.push(found);
+      }
+      if (companyData.business_card_module) {
+        const found = moduleOptions.find(opt => opt.value === 'business_card_module');
+        if (found) mods.push(found);
+      }
+      setSelectedModules(mods);
+      setValue('modules', mods.map(mod => mod.value));
 
       // Set permissions if quotation module exists
       if (companyData.quotation_module === true) {
@@ -181,10 +213,11 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
   };
 
   useEffect(() => {
-    if (mode === 'edit' && companyId) {
+    if (mode === 'edit' && companyId && moduleOptions.length > 0) {
       fetchCompanyData();
     }
-  }, [mode, companyId]); // Removed reset and showSnackbar from dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, companyId, moduleOptions]);
 
   const onSubmit = async (data: CompanyFormData) => {
     try {
@@ -303,9 +336,9 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
         </button>
         
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          // initial={{ opacity: 0, y: 30 }}
+          // animate={{ opacity: 1, y: 0 }}
+          // transition={{ duration: 0.6, ease: "easeOut" }}
         >
           <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8">
             <div className="text-center mb-8">
@@ -339,6 +372,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
                     helperText={errors.email?.message}
                     fullWidth
                     InputProps={{ endAdornment: <EmailIcon className="text-gray-400" /> }}
+                    disabled={mode === 'edit'}
                   />
                 </div>
                 <div className="space-y-2">
@@ -433,10 +467,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
                   <Autocomplete
                     multiple
                     id="module-autocomplete"
-                    options={[
-                      { label: 'quotation_module', value: 'quotation_module' },
-                      { label: 'Visit', value: 'visit' }
-                    ]}
+                    options={moduleOptions}
                     getOptionLabel={option => option.label}
                     value={selectedModules}
                     onChange={(_, newValue) => {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import type React from "react"
@@ -87,12 +88,12 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
       const user = userStr ? JSON.parse(userStr) : null
       const companyUuid = user?.companyuuid
       if (!companyUuid) {
-        showSnackbar("Company UUID not found in localStorage", "error", 4000)
+       console.error("Company UUID not found in localStorage user")
         return
       }
       const token = localStorage.getItem("token")
       if (!token) {
-        showSnackbar("Token not found in localStorage", "error", 4000)
+        console.error("Auth token not found. Please login again.")
         return
       }
       const response = await axios.get(`/api/protected/get-single-product`, {
@@ -175,7 +176,7 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
       // Adjust this if your API returns a different structure
       return res.data?.data?.map((item: any) => item[field]) || []
     } catch (err) {
-      showSnackbar(`Failed to fetch ${field} options`, "error", 3000)
+      console.error(`Failed to fetch ${field} options:`, err)
       return []
     }
   }
@@ -197,6 +198,7 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
       showSnackbar(`Added new ${field}`, "success", 2000)
       return true
     } catch (err) {
+      console.error(`Failed to add ${field}:`, err)
       showSnackbar(`Failed to add ${field}`, "error", 3000)
       return false
     }
@@ -314,6 +316,7 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
         const parsed = JSON.parse(fieldsStr)
         setFields(Object.entries(parsed).map(([key, label]) => ({ key, label: String(label) })))
       } catch (e) {
+        console.error("Failed to parse fields from localStorage:", e)
         setFields([])
       }
     }
@@ -331,9 +334,9 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-3xl mx-auto">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          // initial={{ opacity: 0, y: 30 }}
+          // animate={{ opacity: 1, y: 0 }}
+          // transition={{ duration: 0.6, ease: "easeOut" }}
         >
           {/* Back Button */}
           <button

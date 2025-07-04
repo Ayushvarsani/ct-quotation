@@ -31,7 +31,8 @@ interface UserProfile {
 // Define all modules and their menus
 const ALL_MODULES = [
   {
-    name: "Quotation",
+    name: "quotation_module",
+    label: "Quotation",
     menus: [
      // { name: "Dashboard", href: "/user/dashboard" },
       { name: "Products", href: "/user/products" },
@@ -106,6 +107,7 @@ export default function UserHeader({ username }: HeaderProps) {
     localStorage.removeItem("modules")
     localStorage.removeItem("token")
     localStorage.removeItem("quotation_product_fields")
+    localStorage.removeItem("quotation_grade_fields")
     router.push("/")
   }
   
@@ -165,7 +167,7 @@ export default function UserHeader({ username }: HeaderProps) {
                     }}
                     type="button"
                   >
-                    {userModules[0].name}
+                    {userModules[0].label}
                     <ExpandMoreOutlined
                       className={`h-4 w-4 ml-1 transition-transform duration-200 ${
                         openDropdown === userModules[0].name ? "rotate-180" : ""
@@ -341,7 +343,7 @@ export default function UserHeader({ username }: HeaderProps) {
                         setOpenDropdown(openDropdown === userModules[0].name ? null : userModules[0].name);
                       }}
                     >
-                      <span>{userModules[0].name}</span>
+                      <span>{userModules[0].label}</span>
                       <ExpandMoreOutlined
                         className={`h-4 w-4 ml-1 transition-transform duration-200 ${openDropdown === userModules[0].name ? "rotate-180" : ""}`}
                       />

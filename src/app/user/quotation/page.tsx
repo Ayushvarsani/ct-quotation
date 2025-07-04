@@ -1,7 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
-
-import React, { useRef } from "react"
-import { useState, useEffect } from "react"
+import React, { useRef, useState, useEffect, useCallback } from "react"
+import type { Product, ProductGroup, FormData, ProductPricing } from "@/components/types/quotation"
 import {
   Card,
   CardContent,
@@ -26,93 +26,53 @@ import {
 import { Share, Visibility } from "@mui/icons-material"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
+import axios from "axios"
 
-// Mock data structure
-interface Product {
-  id: number
-  srNo: number
-  size: string
-  category: string
-  packing: string
-  sqFt: number
-  weight: number
-}
 
-interface ProductGroup {
-  name: string
-  products: Product[]
-}
-
-// Mock API data
-const mockProductData: ProductGroup[] = [
-  {
-    name: "PGVT/GVT TILES",
-    products: [
-      { id: 1, srNo: 1, size: "600X600", category: "GVT/PGVT", packing: "4 Pcs", sqFt: 15.5, weight: 26 },
-      { id: 2, srNo: 2, size: "600X600", category: "Lapato/Carving/Rocker", packing: "4 Pcs", sqFt: 15.5, weight: 26 },
-      { id: 3, srNo: 3, size: "600x600", category: "Parking Tiles (12mm)", packing: "3 Pcs", sqFt: 11.6, weight: 29.5 },
-      { id: 4, srNo: 4, size: "300x600", category: "Parking Tiles", packing: "4 Pcs", sqFt: 7.75, weight: 20 },
-      { id: 5, srNo: 5, size: "300x300", category: "Parking Tiles", packing: "7 Pcs", sqFt: 6.78, weight: 17.5 },
-      { id: 6, srNo: 6, size: "600X1200", category: "GVT/PGVT", packing: "2 Pcs", sqFt: 15.5, weight: 28 },
-      { id: 7, srNo: 7, size: "600X1200", category: "Punch", packing: "2 Pcs", sqFt: 15.5, weight: 28 },
-      { id: 8, srNo: 8, size: "600X1200", category: "Lapato/Carving/Rocker", packing: "2 Pcs", sqFt: 15.5, weight: 28 },
-    ],
-  },
-  {
-    name: "Wall Tiles",
-    products: [
-      { id: 9, srNo: 16, size: "300x300", category: "Floor Tiles", packing: "8 Pcs", sqFt: 7.75, weight: 9.1 },
-      { id: 10, srNo: 17, size: "300x450", category: "Wall Tiles", packing: "6 Pcs", sqFt: 8.72, weight: 11 },
-      { id: 11, srNo: 18, size: "300X600", category: "Wall Tiles", packing: "5 Pcs", sqFt: 9.68, weight: 14 },
-      {
-        id: 12,
-        srNo: 19,
-        size: "300X600",
-        category: "High Depth Elevation",
-        packing: "4 Pcs",
-        sqFt: 7.75,
-        weight: 11.7,
-      },
-    ],
-  },
-]
-
-interface FormData {
-  Name: string
-  mobile: string
-  refParty: string
-  seName: string
-  paymentWithDays: string
-  tax: string
-  remark: string
-}
-
-interface ProductPricing {
-  [key: number]: {
-    premium: string
-    standard: string
-    price: string
+const getProductValue = (
+  product: Product,
+  columnKey: string,
+  index?: number,
+  productPricing?: ProductPricing
+): string => {
+  switch (columnKey) {
+    case "srNo":
+      return index !== undefined ? (index + 1).toString() : ""
+    case "sizeCategory":
+      return `${product.product_size} - ${product.product_category}`
+    case "packing":
+      return product.product_pieces_per_box?.toString() || ""
+    case "sqFt":
+      return product.product_sq_ft_box?.toString() || ""
+    case "weight":
+      return product.product_weight?.toString() || ""
+    case "series":
+      return product.product_series || ""
+    case "finish":
+      return product.product_finish || ""
+    case "com":
+      return productPricing?.[product.id]?.com || ""
+    case "eco":
+      return productPricing?.[product.id]?.eco || ""
+    case "premium":
+      return productPricing?.[product.id]?.premium || ""
+    case "standard":
+      return productPricing?.[product.id]?.standard || ""
+    case "price":
+      return productPricing?.[product.id]?.price || ""
+    default:
+      return ""
   }
 }
 
-// Columns config for dynamic rendering
-const columns = [
-  { key: "srNo", label: "Sr. No.", visible: true },
-  { key: "sizeCategory", label: "Size - Category name", visible: true },
-  { key: "packing", label: "Pcs / Box", visible: true },
-  { key: "sqFt", label: "Sq.ft", visible: true },
-  { key: "weight", label: "Weight", visible: true },
-  { key: "premium", label: "Prem.", visible: true },
-  { key: "standard", label: "Std", visible: true },
-  { key: "price", label: "Price", visible: true },
-]
-
-export default function QuotationPage() {
+const QuotationPage: React.FC = () => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
   const [isClient, setIsClient] = useState(false)
   const printRef = useRef<HTMLDivElement>(null)
 
+  
+  const [columns, setColumns] = useState<any[]>([])
   const [formData, setFormData] = useState<FormData>({
     Name: "",
     mobile: "",
@@ -122,37 +82,90 @@ export default function QuotationPage() {
     tax: "",
     remark: "",
   })
-
   const [productGroups, setProductGroups] = useState<ProductGroup[]>([])
   const [productPricing, setProductPricing] = useState<ProductPricing>({})
- // const [currentDate, setCurrentDate] = useState("")
 
-  // Mock API call
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setProductGroups(mockProductData)
-    }, 500)
-
-    // // Set current date
-    // const today = new Date()
-    // const formattedDate = today.toISOString().split("T")[0]
-    // setCurrentDate(formattedDate)
+    const fetchProducts = async () => {
+      try {
+        const userStr = localStorage.getItem("user")
+        const user = userStr ? JSON.parse(userStr) : null
+        const company_uuid = user?.companyuuid
+        const token = localStorage.getItem("token")
+        if (!company_uuid || !token) {
+          setProductGroups([])
+          return
+        }
+        const res = await axios.get("/api/protected/create-product", {
+          params: { company_uuid },
+          headers: {
+            'x-auth-token': `Bearer ${token}`
+          }
+        })
+        const products: Product[] = Array.isArray(res.data?.data) ? res.data.data : []
+        // Group by product_name
+        const grouped = products.reduce((acc: Record<string, Product[]>, product: Product) => {
+          const groupKey = product.product_name || "Other"
+          if (!acc[groupKey]) {
+            acc[groupKey] = []
+          }
+          acc[groupKey].push(product)
+          return acc
+        }, {})
+        // Convert to array of groups for your UI
+        const productGroups: ProductGroup[] = Object.entries(grouped).map(([name, products]) => ({
+          name,
+          products: products as Product[],
+        }))
+        setProductGroups(productGroups)
+      } catch (err) {
+        console.error("Failed to fetch products", err)
+        setProductGroups([])
+      }
+    }
+    fetchProducts()
   }, [])
 
+  // Set client-side rendering flag
   useEffect(() => {
     setIsClient(true)
   }, [])
 
-  const handleInputChange = (field: keyof FormData) => (event: React.ChangeEvent<HTMLInputElement>) => {
+  // Set dynamic columns from localStorage
+  useEffect(() => {
+    const gradeFieldsStr = typeof window !== 'undefined' ? localStorage.getItem("quotation_grade_fields") : null;
+    const productFieldsStr = typeof window !== 'undefined' ? localStorage.getItem("quotation_product_fields") : null;
+    let gradeFields: any = {};
+    let productFields: any = {};
+    if (gradeFieldsStr) gradeFields = JSON.parse(gradeFieldsStr);
+    if (productFieldsStr) productFields = JSON.parse(productFieldsStr);
+    const dynamicColumns = [
+      { key: "srNo", label: "Sr. No.", visible: true },
+      ...(productFields.product_size ? [{ key: "sizeCategory", label: productFields.product_size + "-" + productFields.product_category, visible: true }] : []),
+      ...(productFields.product_series ? [{ key: "series", label: productFields.product_series, visible: true }] : []),
+      ...(productFields.product_finish ? [{ key: "finish", label: productFields.product_finish, visible: true }] : []),
+      ...(productFields.product_pieces_per_box ? [{ key: "packing", label: productFields.product_pieces_per_box, visible: true }] : []),
+      ...(productFields.product_sq_ft_box ? [{ key: "sqFt", label: productFields.product_sq_ft_box, visible: true }] : []),
+      ...(productFields.product_weight ? [{ key: "weight", label: productFields.product_weight, visible: true }] : []),
+      ...(gradeFields.com_grade ? [{ key: "com", label: 'Com', visible: true }] : []),
+      ...(gradeFields.eco_grade ? [{ key: "eco", label: 'Eco', visible: true }] : []),
+      ...(gradeFields.pre_grade ? [{ key: "premium", label: 'Prem.', visible: true }] : []),
+      ...(gradeFields.std_grade ? [{ key: "standard", label: 'Std', visible: true }] : []),
+      { key: "price", label: "Price", visible: true },
+    ];
+    setColumns(dynamicColumns)
+  }, [])
+
+  
+  const handleInputChange = useCallback((field: keyof FormData) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
       ...prev,
       [field]: event.target.value,
     }))
-  }
+  }, [])
 
-  const handlePricingChange =
-    (productId: number, field: "premium" | "standard" | "price") => (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePricingChange = useCallback(
+    (productId: number, field: keyof ProductPricing[number]) => (event: React.ChangeEvent<HTMLInputElement>) => {
       setProductPricing((prev) => ({
         ...prev,
         [productId]: {
@@ -160,17 +173,19 @@ export default function QuotationPage() {
           [field]: event.target.value,
         },
       }))
-    }
+    },
+    []
+  )
 
-  const handleShare = () => {
+  
+  const handleShare = useCallback(() => {
     console.log("Share functionality")
-  }
+  }, [])
 
-  // Dynamic PDF generator based on visible columns
-  const generateModernPDF = () => {
+  
+  const generateModernPDF = useCallback(() => {
     const doc = new jsPDF("p", "mm", "a4")
     const pageWidth = doc.internal.pageSize.width
-    const pageHeight = doc.internal.pageSize.height
     let yPosition = 15
 
     // Professional colors
@@ -214,89 +229,56 @@ export default function QuotationPage() {
     // Customer info in compact format
     doc.setFontSize(11)
     doc.setFont("helvetica", "normal")
-
     const customerDetails = [
       { label: "Name:", value: formData.Name || "________________" },
       { label: "Mobile:", value: formData.mobile || "________________" },
       { label: "Ref. Party:", value: formData.refParty || "________________" },
       { label: "SE Name:", value: formData.seName || "________________" },
     ]
-
-    // Four items in two rows, two columns each
     customerDetails.forEach((detail, index) => {
       const xPos = index % 2 === 0 ? 20 : pageWidth / 2 + 10
       const yPos = yPosition + Math.floor(index / 2) * 6.5
-
       doc.setFont("helvetica", "bold")
       doc.text(detail.label, xPos, yPos)
       doc.setFont("helvetica", "normal")
       doc.text(detail.value, xPos + doc.getTextWidth(detail.label) + 2, yPos)
     })
-
     yPosition += 15
 
-    // Helper function to get product data based on column key
-    const getProductValue = (product: Product, columnKey: string) => {
-      switch (columnKey) {
-        case "srNo":
-          return product.srNo.toString()
-        case "sizeCategory":
-          return `${product.size} - ${product.category}`
-        case "packing":
-          return product.packing
-        case "sqFt":
-          return product.sqFt.toString()
-        case "weight":
-          return product.weight.toString()
-        case "premium":
-          return productPricing[product.id]?.premium || ""
-        case "standard":
-          return productPricing[product.id]?.standard || ""
-        case "price":
-          return productPricing[product.id]?.price || ""
-        default:
-          return ""
-      }
-    }
-
     // Calculate dynamic column widths based on visible columns
-    const totalTableWidth = pageWidth - 40 // 20mm margin on each side
-    const getColumnWidth = (columnKey: string, totalColumns: number) => {
-      // Define base widths for different column types
+    const totalTableWidth = pageWidth - 40
+    const getColumnWidth = (columnKey: string, length: number) => {
+      if (length === 0) return 20 
       const baseWidths: { [key: string]: number } = {
         srNo: 15,
         sizeCategory: 60,
         packing: 20,
         sqFt: 18,
         weight: 18,
+        series: 18,
+        finish: 18,
+        com: 20,
+        eco: 20,
         premium: 20,
         standard: 20,
         price: 20,
       }
-
       const baseWidth = baseWidths[columnKey] || 20
       const totalBaseWidth = visibleColumns.reduce((sum, col) => sum + (baseWidths[col.key] || 20), 0)
-
-      // Scale proportionally to fit available width
       return (baseWidth / totalBaseWidth) * totalTableWidth
     }
 
     // Dynamic Product sections with minimal spacing
     productGroups.forEach((group, groupIndex) => {
-      // Section title with reduced spacing
       doc.setTextColor(textColor[0], textColor[1], textColor[2])
       doc.setFontSize(11)
       doc.setFont("helvetica", "bold")
       doc.text(group.name, 20, yPosition)
       yPosition += 5
-
-      // Prepare dynamic table data based on visible columns
       const tableHeaders = visibleColumns.map((col) => col.label)
-      const tableData = group.products.map((product) => {
-        return visibleColumns.map((col) => getProductValue(product, col.key))
+      const tableData = group.products.map((product, idx) => {
+        return visibleColumns.map((col) => getProductValue(product, col.key, idx, productPricing))
       })
-
-      // Create dynamic column styles
       const columnStyles: { [key: number]: any } = {}
       visibleColumns.forEach((col, index) => {
         columnStyles[index] = {
@@ -304,8 +286,6 @@ export default function QuotationPage() {
           halign: col.key === "sizeCategory" ? "left" : "center",
         }
       })
-
-      // Compact table with dynamic columns
       autoTable(doc, {
         startY: yPosition,
         head: [tableHeaders],
@@ -331,8 +311,6 @@ export default function QuotationPage() {
         tableLineWidth: 0.2,
         tableWidth: "auto",
       })
-
-      // Minimal spacing between tables
       yPosition = (doc as any).lastAutoTable.finalY + (groupIndex < productGroups.length - 1 ? 8 : 12)
     })
 
@@ -342,16 +320,13 @@ export default function QuotationPage() {
     doc.setTextColor(textColor[0], textColor[1], textColor[2])
     doc.text("TERMS & CONDITIONS", 20, yPosition)
     yPosition += 6
-
     doc.setFontSize(11)
     doc.setFont("helvetica", "normal")
-
     const terms = [
       `1. Taxes: ${formData.tax || "As applicable"}`,
       `2. Payment: Within ${formData.paymentWithDays || "___"} days from billing date`,
       `3. ${formData.remark || "Additional terms as discussed"}`,
     ]
-
     terms.forEach((term) => {
       if (
         term.trim() !== "1. Taxes: " &&
@@ -362,24 +337,123 @@ export default function QuotationPage() {
         yPosition += 5
       }
     })
-
     yPosition += 8
-
-    // Convert to blob and open in new tab instead of downloading
     const pdfBlob = doc.output("blob")
     const pdfUrl = URL.createObjectURL(pdfBlob)
     window.open(pdfUrl, "_blank")
-
     setTimeout(() => {
       URL.revokeObjectURL(pdfUrl)
     }, 1000)
-  }
+  }, [columns, formData, productGroups, productPricing])
 
-  // Use the new PDF generator in handlePreview
-  const handlePreview = () => {
-    generateModernPDF();
-  };
+  
+  const handlePreview = useCallback(() => {
+    generateModernPDF()
+  }, [generateModernPDF])
 
+  
+  const renderMobileProductGroup = useCallback((group: ProductGroup) => (
+    <Box>
+      {group.products.map((product, idx) => (
+        <Paper key={product.id} sx={{ p: 2, mb: 2, boxShadow: 2, borderRadius: 2 }}>
+          {/* Always show size-category at the top if enabled */}
+          {columns.find(col => col.key === "sizeCategory" && col.visible) && (
+            <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
+              {product.product_size} - {product.product_category}
+            </Typography>
+          )}
+          <Divider sx={{ mb: 2 }} />
+          <Grid container spacing={2} sx={{ mb: 1 }}>
+            {columns.filter(col => col.key !== "sizeCategory" && !["premium", "standard", "price", "com", "eco"].includes(col.key) && col.visible).map((col) => (
+              <Grid size={{ xs: 6 }} key={col.key}>
+                <Typography variant="body2">
+                  <strong>{col.label}:</strong> {getProductValue(product, col.key, idx, productPricing)}
+                </Typography>
+              </Grid>
+            ))}
+          </Grid>
+          {/* Pricing fields (editable) */}
+          <Grid container spacing={2} sx={{ mb: 1 }}>
+            {columns.filter(col => ["premium", "standard", "price", "com", "eco"].includes(col.key) && col.visible).map((col) => (
+              <Grid size={{ xs: 6 }} key={col.key}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  variant="outlined"
+                  label={col.label}
+                  value={productPricing[product.id]?.[col.key as keyof ProductPricing[number]] || ""}
+                  onChange={handlePricingChange(product.id, col.key as any)}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
+      ))}
+    </Box>
+  ), [columns, productPricing, handlePricingChange])
+
+  
+  const renderDesktopProductGroup = useCallback((group: ProductGroup) => (
+    <TableContainer component={Paper} sx={{ mb: 3, overflowX: "auto" }}>
+      <Table size="small" sx={{ minWidth: { xs: 700, sm: "auto" } }}>
+        <TableHead>
+          <TableRow sx={{ bgcolor: "#f5f5f5" }}>
+            {columns.filter(col => col.visible).map((col) => (
+              <TableCell
+                key={col.key}
+                sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
+              >
+                {col.label}
+              </TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {group.products.map((product, idx) => (
+            <TableRow key={product.id} hover>
+              {columns.filter(col => col.visible).map((col) => {
+                switch (col.key) {
+                  case "srNo":
+                  case "sizeCategory":
+                  case "packing":
+                  case "sqFt":
+                  case "weight":
+                  case "series":
+                  case "finish":
+                    return (
+                      <TableCell key={col.key} sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                        {getProductValue(product, col.key, col.key === "srNo" ? idx : undefined, productPricing)}
+                      </TableCell>
+                    )
+                  case "com":
+                  case "eco":
+                  case "premium":
+                  case "standard":
+                  case "price":
+                    return (
+                      <TableCell key={col.key}>
+                        <TextField
+                          size="small"
+                          variant="outlined"
+                          placeholder={col.label}
+                          value={productPricing[product.id]?.[col.key as keyof ProductPricing[number]] || ""}
+                          onChange={handlePricingChange(product.id, col.key as any)}
+                          sx={{ width: { xs: 80, sm: col.key === "price" ? 100 : 85 } }}
+                        />
+                      </TableCell>
+                    )
+                  default:
+                    return null
+                }
+              })}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  ), [columns, productPricing, handlePricingChange])
+
+  
   return (
     <Box ref={printRef} sx={{ minHeight: "100vh", bgcolor: "#f5f5f5", py: { xs: 2, sm: 4 }, px: { xs: 1, sm: 2 } }}>
       <Card sx={{ maxWidth: 1200, mx: "auto", boxShadow: 3 }}>
@@ -391,16 +465,14 @@ export default function QuotationPage() {
           }
           action={
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {/* <CalendarToday sx={{ color: "#666" }} /> */}
               <Typography variant="h6" >
                 {`${new Date().toLocaleDateString("en-GB")} ${new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`}
               </Typography>
             </Box>
           }
         />
-
         <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
-
+          {/* Customer Details Form */}
           <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ mb: 4 }}>
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <Box
@@ -503,232 +575,27 @@ export default function QuotationPage() {
                 />
               </Box>
             </Grid>
-
-            {/* <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Box
-                sx={{
-                  display: { xs: "block", sm: "flex" },
-                  alignItems: "center",
-                  gap: 2,
-                }}
-              >
-                <Typography
-                  sx={{ minWidth: { sm: 120 }, fontWeight: 500, fontSize: { xs: "0.9rem", sm: "1rem" }, mb: { xs: 1, sm: 0 } }}
-                >
-                  Date :
-                </Typography>
-                <TextField
-                  type="date"
-                  required
-                  value={currentDate}
-                  onChange={(e) => setCurrentDate(e.target.value)}
-                  variant="outlined"
-                  size="small"
-                  sx={{ width: { xs: "100%", sm: 200 } }}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Box>
-            </Grid> */}
           </Grid>
-
           <Divider sx={{ my: 3 }} />
-
-          {/* Product Tables - Keep Original Design */}
+          {/* Product Tables */}
           {productGroups.map((group, groupIndex) => (
             <Box key={groupIndex} sx={{ mb: 4 }}>
               <Typography variant={isMobile ? "h6" : "h5"} sx={{ fontWeight: "bold", mb: 2, color: "#333" }}>
                 {group.name}
               </Typography>
-
-              {isClient && isMobile ? (
-                // Mobile View: Card-based layout (dynamic columns, size-category always on top)
-                <Box>
-                  {group.products.map((product) => (
-                    <Paper key={product.id} sx={{ p: 2, mb: 2, boxShadow: 2, borderRadius: 2 }}>
-                      {/* Always show size-category at the top */}
-                      <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
-                        {product.size} - {product.category}
-                      </Typography>
-                      <Divider sx={{ mb: 2 }} />
-                      {/* Render the rest of the fields dynamically */}
-                      {columns.filter(col => col.visible && col.key !== "sizeCategory").map((col) => (
-                        <React.Fragment key={col.key}>
-                          {(() => {
-                            switch (col.key) {
-                              case "srNo":
-                                return (
-                                  <Grid container spacing={2} sx={{ mb: 1 }}>
-                                    <Grid size={{ xs: 6 }}>
-                                      <Typography variant="body2">
-                                        <strong>Sr. No.:</strong> {product.srNo}
-                                      </Typography>
-                                      <Typography variant="body2">
-                                        <strong>Pcs/Box:</strong> {product.packing}
-                                      </Typography>
-                                    </Grid>
-                                    <Grid size={{ xs: 6 }}>
-                                      <Typography variant="body2">
-                                        <strong>Sq.ft:</strong> {product.sqFt}
-                                      </Typography>
-                                      <Typography variant="body2">
-                                        <strong>Weight:</strong> {product.weight}
-                                      </Typography>
-                                    </Grid>
-                                  </Grid>
-                                );
-                              case "premium":
-                                return (
-                                  <Grid container spacing={2} sx={{ mb: 1 }}>
-                                    <Grid size={{ xs: 4 }}>
-                                      <TextField
-                                        fullWidth
-                                        size="small"
-                                        variant="outlined"
-                                        label="Premium"
-                                        value={productPricing[product.id]?.premium || ""}
-                                        onChange={handlePricingChange(product.id, "premium")}
-                                      />
-                                    </Grid>
-                                    <Grid size={{ xs: 4 }}>
-                                      <TextField
-                                        fullWidth
-                                        size="small"
-                                        variant="outlined"
-                                        label="Standard"
-                                        value={productPricing[product.id]?.standard || ""}
-                                        onChange={handlePricingChange(product.id, "standard")}
-                                      />
-                                    </Grid>
-                                    <Grid size={{ xs: 4 }}>
-                                      <TextField
-                                        fullWidth
-                                        size="small"
-                                        variant="outlined"
-                                        label="Price"
-                                        value={productPricing[product.id]?.price || ""}
-                                        onChange={handlePricingChange(product.id, "price")}
-                                      />
-                                    </Grid>
-                                  </Grid>
-                                );
-                              default:
-                                return null;
-                            }
-                          })()}
-                        </React.Fragment>
-                      ))}
-                    </Paper>
-                  ))}
-                </Box>
-              ) : (
-                // Desktop View: Table layout
-                <TableContainer
-                  component={Paper}
-                  sx={{
-                    mb: 3,
-                    overflowX: "auto",
-                  }}
-                >
-                  <Table size="small" sx={{ minWidth: { xs: 700, sm: "auto" } }}>
-                    <TableHead>
-                      <TableRow sx={{ bgcolor: "#f5f5f5" }}>
-                        {columns.filter(col => col.visible).map((col) => (
-                          <TableCell
-                            key={col.key}
-                            sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
-                          >
-                            {col.label}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {group.products.map((product) => (
-                        <TableRow key={product.id} hover>
-                          {columns.filter(col => col.visible).map((col) => {
-                            switch (col.key) {
-                              case "srNo":
-                                return <TableCell key={col.key} sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.srNo}</TableCell>;
-                              case "sizeCategory":
-                                return (
-                                  <TableCell key={col.key} sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
-                                    <Typography variant="body2">
-                                      {product.size} - {product.category}
-                                    </Typography>
-                                  </TableCell>
-                                );
-                              case "packing":
-                                return <TableCell key={col.key} sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.packing}</TableCell>;
-                              case "sqFt":
-                                return <TableCell key={col.key} sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.sqFt}</TableCell>;
-                              case "weight":
-                                return <TableCell key={col.key} sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>{product.weight}</TableCell>;
-                              case "premium":
-                                return (
-                                  <TableCell key={col.key}>
-                                    <TextField
-                                      size="small"
-                                      variant="outlined"
-                                      placeholder="Premium"
-                                      value={productPricing[product.id]?.premium || ""}
-                                      onChange={handlePricingChange(product.id, "premium")}
-                                      sx={{ width: { xs: 80, sm: 100 } }}
-                                    />
-                                  </TableCell>
-                                );
-                              case "standard":
-                                return (
-                                  <TableCell key={col.key}>
-                                    <TextField
-                                      size="small"
-                                      variant="outlined"
-                                      placeholder="Standard"
-                                      value={productPricing[product.id]?.standard || ""}
-                                      onChange={handlePricingChange(product.id, "standard")}
-                                      sx={{ width: { xs: 80, sm: 100 } }}
-                                    />
-                                  </TableCell>
-                                );
-                              case "price":
-                                return (
-                                  <TableCell key={col.key}>
-                                    <TextField
-                                      size="small"
-                                      variant="outlined"
-                                      placeholder="Price"
-                                      value={productPricing[product.id]?.price || ""}
-                                      onChange={handlePricingChange(product.id, "price")}
-                                      sx={{ width: { xs: 80, sm: 100 } }}
-                                    />
-                                  </TableCell>
-                                );
-                              default:
-                                return null;
-                            }
-                          })}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
+              {isClient && isMobile
+                ? renderMobileProductGroup(group)
+                : renderDesktopProductGroup(group)}
             </Box>
           ))}
-
-          {/* Note Section - Responsive */}
+          {/* Note Section */}
           <Box sx={{ mt: 4, mb: 3 }}>
             <Typography variant="h6" sx={{ fontWeight: "bold", mb: 2, fontSize: { xs: "1rem", sm: "1.25rem" } }}>
               Note :-
             </Typography>
             <Box component="ol" sx={{ pl: { xs: 2, sm: 3 }, "& li": { mb: { xs: 2, sm: 1 } } }}>
               <Box component="li">
-                <Box
-                  sx={{
-                    display: { xs: "block", sm: "flex" },
-                    alignItems: "center",
-                    gap: 1,
-                  }}
-                >
+                <Box sx={{ display: { xs: "block", sm: "flex" }, alignItems: "center", gap: 1 }}>
                   <Typography sx={{ fontSize: { xs: "0.9rem", sm: "1rem" }, mb: { xs: 1, sm: 0 } }}>Taxes</Typography>
                   <TextField
                     size="small"
@@ -742,14 +609,7 @@ export default function QuotationPage() {
                 </Box>
               </Box>
               <Box component="li">
-                <Box
-                  sx={{
-                    display: { xs: "block", sm: "flex" },
-                    alignItems: "center",
-                    gap: 1,
-                    flexWrap: "wrap",
-                  }}
-                >
+                <Box sx={{ display: { xs: "block", sm: "flex" }, alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                   <Typography sx={{ fontSize: { xs: "0.9rem", sm: "1rem" }, mr: { sm: 1 }, mb: { xs: 1, sm: 0 } }}>
                     Payment within
                   </Typography>
@@ -778,42 +638,16 @@ export default function QuotationPage() {
               </Box>
             </Box>
           </Box>
-
-          {/* Action Buttons - Responsive with IconButton option */}
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              justifyContent: "flex-end",
-              gap: { xs: 2, sm: 2 },
-              mt: 4,
-            }}
-          >
+          {/* Action Buttons */}
+          <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "flex-end", gap: { xs: 2, sm: 2 }, mt: 4 }}>
             {isClient &&
               (isMobile ? (
                 <>
-                  <IconButton
-                    onClick={handleShare}
-                    sx={{
-                      border: "1px solid #1976d2",
-                      borderRadius: 2,
-                      p: 2,
-                      "&:hover": { bgcolor: "#f5f5f5" },
-                    }}
-                  >
+                  <IconButton onClick={handleShare} sx={{ border: "1px solid #1976d2", borderRadius: 2, p: 2, "&:hover": { bgcolor: "#f5f5f5" } }}>
                     <Share sx={{ mr: 1 }} />
                     <Typography variant="body2">Share</Typography>
                   </IconButton>
-                  <IconButton
-                    onClick={handlePreview}
-                    sx={{
-                      bgcolor: "#1976d2",
-                      color: "white",
-                      borderRadius: 2,
-                      p: 2,
-                      "&:hover": { bgcolor: "#1565c0" },
-                    }}
-                  >
+                  <IconButton onClick={handlePreview} sx={{ bgcolor: "#1976d2", color: "white", borderRadius: 2, p: 2, "&:hover": { bgcolor: "#1565c0" } }}>
                     <Visibility sx={{ mr: 1 }} />
                     <Typography variant="body2">Preview</Typography>
                   </IconButton>
@@ -834,3 +668,5 @@ export default function QuotationPage() {
     </Box>
   )
 }
+
+export default QuotationPage

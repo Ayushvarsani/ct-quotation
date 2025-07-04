@@ -16,6 +16,7 @@ interface UserFormData {
   password: string;
   confirmPassword: string;
   status: string;
+  userRole: number; // 1 for Admin, 2 for Staff
 }
 
 interface UserFormProps {
@@ -39,6 +40,7 @@ const userSchema = yup.object().shape({
   }),
   modules: yup.array().min(1, 'Select at least one module'),
   status: yup.string().oneOf(['ACTIVE', 'INACTIVE'], 'Status must be Active or Inactive').required('Status is required'),
+  userRole: yup.number().oneOf([1, 2], 'Select a user role').required('User role is required'),
 });
 
 const initialFormData: UserFormData = {
@@ -48,6 +50,7 @@ const initialFormData: UserFormData = {
   password: '',
   confirmPassword: '',
   status: 'ACTIVE',
+  userRole: 1, // Default to Admin
 };
 
 const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
@@ -65,7 +68,11 @@ const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
     { label: 'Active', value: 'ACTIVE' },
     { label: 'Inactive', value: 'INACTIVE' },
   ]);
-
+  const [roleOptions] = useState([
+    { label: 'Admin', value: 1 },
+    { label: 'Staff', value: 2 },
+  ]);
+  
   useEffect(() => {
     // Load module options from localStorage
     try {
@@ -73,10 +80,20 @@ const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
       if (stored) {
         const parsed = JSON.parse(stored);
         const options = Array.isArray(parsed)
-          ? parsed.map((mod: any) => ({
-              label: mod.label ?? mod.value ?? String(mod),
-              value: mod.value ?? mod.label ?? String(mod),
-            }))
+          ? parsed.map((mod: any) => {
+              const rawValue = mod.value ?? mod.label ?? String(mod);
+              let label = mod.label ?? rawValue;
+              if (typeof rawValue === 'string' && rawValue.endsWith('_module')) {
+                label = rawValue
+                  .replace(/_module$/, '')
+                  .replace(/_/g, ' ')
+                  .replace(/\b\w/g, l => l.toUpperCase());
+              }
+              return {
+                label,
+                value: rawValue,
+              };
+            })
           : [];
         setModuleOptions(options);
       } else {
@@ -99,7 +116,7 @@ const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        showSnackbar('Auth token not found. Please login again.', 'error', 4000);
+        console.log('Auth token not found. Please login again.');
         setLoading(false);
         return;
       }
@@ -117,23 +134,33 @@ const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
         password: '', // Don't prefill password
         confirmPassword: '',
         status: user.status || 'ACTIVE',
+        userRole: user.customer_role, // Use existing role or default to Admin
       });
       // Set modules if present
       if (user.module && Array.isArray(user.module)) {
         setSelectedModules(
-          user.module.map((mod: string) => ({
-            label: mod.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            value: mod,
-          }))
+          user.module.map((mod: string) => {
+            let label = mod;
+            if (typeof mod === 'string' && mod.endsWith('_module')) {
+              label = mod
+                .replace(/_module$/, '')
+                .replace(/_/g, ' ')
+                .replace(/\b\w/g, l => l.toUpperCase());
+            }
+            return {
+              label,
+              value: mod,
+            };
+          })
         );
       } else if (user.quotation_module || user.business_card_module) {
         const mods = [];
-        if (user.quotation_module) mods.push({ label: 'Quotation Module', value: 'quotation_module' });
-        if (user.business_card_module) mods.push({ label: 'Business Card Module', value: 'business_card_module' });
+        if (user.quotation_module) mods.push({ label: 'Quotation', value: 'quotation_module' });
+        if (user.business_card_module) mods.push({ label: 'Business Card', value: 'business_card_module' });
         setSelectedModules(mods);
       }
     } catch (error: any) {
-      showSnackbar('Failed to fetch user data', 'error', 4000);
+      console.error('Error fetching user data:', error);
     } finally {
       setLoading(false);
     }
@@ -164,7 +191,10 @@ const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
   };
 
   const handleInputChange = (field: keyof UserFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [field]: field === 'userRole' ? Number(value) : value,
+    }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
@@ -223,7 +253,7 @@ const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
       customer_name: formData.name,
       customer_email: formData.email,
       customer_mobile: formData.mobileNumber,
-      customer_role: 1, // TODO: Make dynamic if needed
+      customer_role: formData.userRole, // Use selected role
       module: modulesArr,
       quotation_module: modulesArr.includes('quotation_module'),
       business_card_module: modulesArr.includes('business_card_module'),
@@ -324,31 +354,67 @@ const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
                     value={formData.email}
                     onChange={e => handleInputChange('email', e.target.value)}
                     className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.email ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'}`}
+                    disabled={mode === 'edit'}
                     placeholder="Enter email address"
                   />
                 </div>
                 {errors.email && <p className="text-red-500 text-sm">{errors.email}</p>}
               </div>
 
-              {/* Mobile Number Field */}
-              <div className="space-y-2">
-                <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700">Mobile Number *</label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <input
-                    type="tel"
-                    id="mobileNumber"
-                    value={formData.mobileNumber}
-                    onChange={e => handleInputChange('mobileNumber', e.target.value.replace(/\D/g, ''))}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.mobileNumber ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'}`}
-                    placeholder="1234567890"
-                    maxLength={10}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700">Mobile Number *</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <input
+                      type="tel"
+                      id="mobileNumber"
+                      value={formData.mobileNumber}
+                      onChange={e => handleInputChange('mobileNumber', e.target.value.replace(/\D/g, ''))}
+                      className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.mobileNumber ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'}`}
+                      placeholder="1234567890"
+                      maxLength={10}
+                    />
+                  </div>
+                  {errors.mobileNumber && <p className="text-red-500 text-sm">{errors.mobileNumber}</p>}
+                </div>
+                <div className="space-y-2 mt-6">
+                  <Autocomplete
+                    id="role-autocomplete"
+                    options={roleOptions}
+                    getOptionLabel={option => option.label}
+                    value={roleOptions.find(opt => opt.value === formData.userRole) || null}
+                    onChange={(_, newValue) => {
+                      if (newValue) handleInputChange('userRole', newValue.value.toString());
+                      else handleInputChange('userRole', '');
+                    }}
+                    renderInput={params => (
+                      <TextField
+                        {...params}
+                        name="userRole"
+                        label="User Role"
+                        error={!!errors.userRole}
+                        helperText={errors.userRole}
+                        placeholder="Select user role"
+                        fullWidth
+                      />
+                    )}
+                    renderOption={(props, option) => (
+                      <li {...props} key={option.value} className="flex items-center gap-2">
+                        <Checkbox
+                          checked={formData.userRole === option.value}
+                          tabIndex={-1}
+                          disableRipple
+                          inputProps={{ 'aria-label': option.label }}
+                        />
+                        {option.label}
+                      </li>
+                    )}
+                    disableCloseOnSelect
                   />
                 </div>
-                {errors.mobileNumber && <p className="text-red-500 text-sm">{errors.mobileNumber}</p>}
               </div>
 
-            
               {/* Password Fields (only for create or if editing and changing password) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -361,7 +427,7 @@ const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
                       value={formData.password}
                       onChange={e => handleInputChange('password', e.target.value)}
                       className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.password ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'}`}
-                      placeholder={mode === 'edit' ? 'Leave blank to keep unchanged' : 'Enter password'}
+                      placeholder='Enter password'
                     />
                     <button
                       type="button"
@@ -383,7 +449,7 @@ const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
                       value={formData.confirmPassword}
                       onChange={e => handleInputChange('confirmPassword', e.target.value)}
                       className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.confirmPassword ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'}`}
-                      placeholder={mode === 'edit' ? 'Leave blank to keep unchanged' : 'Confirm password'}
+                      placeholder='Confirm password'
                     />
                     <button
                       type="button"

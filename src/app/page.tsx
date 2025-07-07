@@ -67,7 +67,8 @@ export default function LoginPage() {
           customeruuid: res.data.data.customer_uuid,
           companyuuid: res.data.data.company_uuid,
           name: res.data.data.customer_name || data.email,
-          role: res.data.data.customer_role
+          role: res.data.data.customer_role,
+          usermobile: res.data.data.customer_mobile,
         }))
         // Dynamically set enabled modules
         const modules = []

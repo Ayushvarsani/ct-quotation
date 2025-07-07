@@ -85,6 +85,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
     resolver: yupResolver(schema),
     defaultValues: {
       modules: [],
+      status: 'ACTIVE',
     },
   });
 
@@ -155,7 +156,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
         defaultMessageNumber: companyData.company_message_number,
         startDate: dayjs(companyData.start_date).format('YYYY-MM-DD'),
         endDate: dayjs(companyData.end_date).format('YYYY-MM-DD'),
-        status: companyData.status || 'ACTIVE',
+        status: companyData.status,
       });
 
       // Update labels with API response values

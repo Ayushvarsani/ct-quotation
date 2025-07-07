@@ -88,7 +88,8 @@ export default function Header({ username }: HeaderProps) {
   }
 
   const confirmLogout = () => {
-    localStorage.clear()
+    localStorage.removeItem("admin_jwt_token")
+    localStorage.removeItem("admin_info")
     router.push("/admin/login")
   }
 

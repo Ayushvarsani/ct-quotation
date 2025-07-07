@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
 import React from 'react';
@@ -6,7 +7,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect} from 'react';
 import BusinessIcon from '@mui/icons-material/Business';
 import EmailIcon from '@mui/icons-material/Email';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -448,7 +449,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
                       />
                     )}
                     renderOption={(props, option, { selected }) => {
-                      const { key, ...otherProps } = props;
+                      const { ...otherProps } = props;
                       return (
                         <li {...otherProps} key={`module-${option.value || option.label}`} className="flex items-center gap-2">
                           <Checkbox
@@ -489,7 +490,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
                     )}
                     renderOption={(props, option) => {
                       const currentStatus = watch('status');
-                      const { key, ...otherProps } = props;
+                      const { ...otherProps } = props;
                       return (
                         <li {...otherProps} key={`status-${option.value || option.label}`} className="flex items-center gap-2">
                           <Checkbox

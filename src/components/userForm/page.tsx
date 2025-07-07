@@ -108,7 +108,6 @@ const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
     if (mode === 'edit' && userId) {
       fetchUserData(userId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, mode]);
 
   const fetchUserData = async (id: string) => {

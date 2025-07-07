@@ -6,7 +6,7 @@ import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import BusinessIcon from '@mui/icons-material/Business';
 import EmailIcon from '@mui/icons-material/Email';
 import VisibilityIcon from '@mui/icons-material/Visibility';
@@ -24,11 +24,11 @@ const schema = yup.object({
   email: yup.string().email('Invalid email').required('Email is required'),
   password: yup.string().required('Password is required').min(8, 'Password must be at least 8 characters'),
   mobileNo: yup.string().required('Mobile number is required').matches(/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number'),
-  status: yup.string().oneOf(['ACTIVE', 'INACTIVE'], 'Status must be Active or Inactive').required('Status is required'),
   defaultMessageNumber: yup.string().required('Default message number is required').matches(/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number'),
   startDate: yup.string().required('Start date is required'),
   endDate: yup.string().required('End date is required'),
   modules: yup.array().of(yup.string().oneOf(['quotation_module', 'visit'])).min(1, 'Select at least one module').required('Module is required'),
+  status: yup.string().oneOf(['ACTIVE', 'INACTIVE'], 'Status must be Active or Inactive').required('Status is required'),
 }).required();
 
 type CompanyFormData = yup.InferType<typeof schema>;
@@ -61,6 +61,10 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
   const [selectedModules, setSelectedModules] = useState<{ label: string, value: string }[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [moduleOptions, setModuleOptions] = useState<{ label: string; value: string }[]>([]);
+  const [statusOptions] = useState([
+    { label: 'Active', value: 'ACTIVE' },
+    { label: 'Inactive', value: 'INACTIVE' },
+  ]);
 
   const handlePermissionChange = (field: keyof typeof permissions) => {
     setPermissions(prev => ({
@@ -79,16 +83,9 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
   } = useForm<CompanyFormData>({
     resolver: yupResolver(schema),
     defaultValues: {
-      status: 'ACTIVE',
       modules: [],
     },
   });
-
-  const status = watch('status');
-
-  const handleStatusChange = (value: 'ACTIVE' | 'INACTIVE') => {
-    setValue('status', value);
-  };
 
   const productFieldMap = {
     product: 'product_name',
@@ -99,7 +96,6 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
     pcsPerBox: 'product_pieces_per_box',
     sqFtPerBox: 'product_sq_ft_box',
     weight: 'product_weight',
-    status: 'status',
   };
 
   useEffect(() => {
@@ -155,10 +151,10 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
         email: companyData.company_email,
         password: companyData.company_password,
         mobileNo: companyData.company_mobile,
-        status: companyData.status,
         defaultMessageNumber: companyData.company_message_number,
         startDate: dayjs(companyData.start_date).format('YYYY-MM-DD'),
         endDate: dayjs(companyData.end_date).format('YYYY-MM-DD'),
+        status: companyData.status || 'ACTIVE',
       });
 
       // Update labels with API response values
@@ -244,10 +240,10 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
         company_mobile: data.mobileNo,
         company_password: data.password,
         module: data.modules,
-        status: data.status,
         start_date: data.startDate,
         end_date: data.endDate,
         company_message_number: data.defaultMessageNumber,
+        status: data.status,
         ...(isQuotationSelected && quotationFields),
       };
 
@@ -413,41 +409,6 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
                     InputProps={{ endAdornment: <PhoneIcon className="text-gray-400" /> }}
                   />
                 </div>
-                {/* Status Field */}
-                <div className="space-y-2">
-                  <Autocomplete
-                    id="status-autocomplete"
-                    options={[{ label: 'ACTIVE', value: 'ACTIVE' }, { label: 'INACTIVE', value: 'INACTIVE' }]}
-                    getOptionLabel={option => option.label}
-                    value={{ label: status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE', value: status }}
-                    onChange={(_, newValue) => {
-                      if (newValue) handleStatusChange(newValue.value as 'ACTIVE' | 'INACTIVE');
-                    }}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        name="status"
-                        label="Status"
-                        error={!!errors.status}
-                        helperText={errors.status?.message}
-                        placeholder="Select status"
-                        fullWidth
-                      />
-                    )}
-                    renderOption={(props, option) => (
-                      <li {...props} key={option.value} className="flex items-center gap-2">
-                        <Checkbox
-                          checked={status === option.value}
-                          tabIndex={-1}
-                          disableRipple
-                          inputProps={{ 'aria-label': option.label }}
-                        />
-                        {option.label}
-                      </li>
-                    )}
-                    disableCloseOnSelect
-                  />
-                </div>
                 {/* default message number Field */}
                 <div className="space-y-2">
                   <TextField
@@ -486,17 +447,61 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
                         fullWidth
                       />
                     )}
-                    renderOption={(props, option, { selected }) => (
-                      <li {...props} key={option.value ?? option.label} className="flex items-center gap-2">
-                        <Checkbox
-                          checked={selected}
-                          tabIndex={-1}
-                          disableRipple
-                          inputProps={{ 'aria-label': option.label }}
-                        />
-                        {option.label}
-                      </li>
+                    renderOption={(props, option, { selected }) => {
+                      const { key, ...otherProps } = props;
+                      return (
+                        <li {...otherProps} key={`module-${option.value || option.label}`} className="flex items-center gap-2">
+                          <Checkbox
+                            checked={selected}
+                            tabIndex={-1}
+                            disableRipple
+                            inputProps={{ 'aria-label': option.label }}
+                          />
+                          {option.label}
+                        </li>
+                      );
+                    }}
+                    disableCloseOnSelect
+                  />
+                </div>
+                {/* Status Field */}
+                <div className="space-y-2">
+                  <Autocomplete
+                    id="status-autocomplete"
+                    options={statusOptions}
+                    getOptionLabel={option => option.label}
+                    value={statusOptions.find(opt => opt.value === watch('status')) || statusOptions[0]}
+                    onChange={(_, newValue) => {
+                      if (newValue) {
+                        setValue('status', newValue.value as 'ACTIVE' | 'INACTIVE', { shouldValidate: true });
+                      }
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        name="status"
+                        label="Status"
+                        error={!!errors.status}
+                        helperText={errors.status?.message}
+                        placeholder="Select status"
+                        fullWidth
+                      />
                     )}
+                    renderOption={(props, option) => {
+                      const currentStatus = watch('status');
+                      const { key, ...otherProps } = props;
+                      return (
+                        <li {...otherProps} key={`status-${option.value || option.label}`} className="flex items-center gap-2">
+                          <Checkbox
+                            checked={currentStatus === option.value}
+                            tabIndex={-1}
+                            disableRipple
+                            inputProps={{ 'aria-label': option.label }}
+                          />
+                          {option.label}
+                        </li>
+                      );
+                    }}
                     disableCloseOnSelect
                   />
                 </div>

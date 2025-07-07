@@ -66,7 +66,8 @@ export default function LoginPage() {
           email: data.email,
           customeruuid: res.data.data.customer_uuid,
           companyuuid: res.data.data.company_uuid,
-          name: res.data.data.customer_name || data.email
+          name: res.data.data.customer_name || data.email,
+          role: res.data.data.customer_role
         }))
         // Dynamically set enabled modules
         const modules = []
@@ -75,7 +76,7 @@ export default function LoginPage() {
         // Add more modules here as needed
         localStorage.setItem("modules", JSON.stringify(modules))
         localStorage.setItem("token", res.data.data.jwt_token)
-
+        
         if (res.data.data.quotation_module) {
           const allFields = {
             product_name: res.data.data.product_name,
@@ -111,8 +112,8 @@ export default function LoginPage() {
 
         // Redirect after showing success message
         setTimeout(() => {
-          router.push("/user/products")
-        }, 1000)
+          router.push("/user/quotation")
+        }, 10)
       } else {
         setLoginError(res.data.message || "Login failed. Please try again.")
       }

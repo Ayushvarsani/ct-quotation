@@ -175,11 +175,12 @@ export default function UserList() {
                       <Chip 
                         label={user.customerRole === 1 ? "ADMIN" : user.customerRole === 2 ? "STAFF" : user.customerRole} 
                         size="small" 
-                        // color={user.customerRole === 3 ? "primary" : user.customerRole === 2 ? "secondary" : "default"}
+                        color={user.customerRole === 1 ? "primary" : user.customerRole === 2 ? "secondary" : "default"}
                         variant="outlined"
                         className="ml-2"
                         sx={{
-                        color:'red'
+                          color: 'white',
+                          backgroundColor: '#4f46e5', // Tailwind bg-indigo-500
                         }}
                       />
                     </td>

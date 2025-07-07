@@ -52,6 +52,7 @@ export default function UserHeader({ username }: HeaderProps) {
   const mobileMenuRef = useRef<HTMLDivElement>(null)
   const [allowedModules, setAllowedModules] = useState<string[]>([])
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [userRole, setUserRole] = useState<number>(0)
 
   // Mock user profile data
   const userProfile: UserProfile = {
@@ -83,16 +84,17 @@ export default function UserHeader({ username }: HeaderProps) {
   }, [])
 
   useEffect(() => {
+    const role = localStorage.getItem("user")
+    const setrole = JSON.parse(role || '{}')
+    setUserRole(setrole.role)
     const stored = localStorage.getItem("modules")
     if (stored) setAllowedModules(JSON.parse(stored))
   }, [])
 
-  // Filter modules for current user
-  const userModules = ALL_MODULES.filter((module) =>
-    allowedModules.includes(module.name)
-  )
-
-  // If only one module, show its menus as main nav
+  const userModules = userRole === 1
+    ? ALL_MODULES.filter((module) => allowedModules.includes(module.name))
+    : [];
+    
   const showSingleModuleMenus = userModules.length === 1
   const singleModuleMenus = showSingleModuleMenus ? userModules[0].menus : []
 

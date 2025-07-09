@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useEffect, useState } from "react"
@@ -9,9 +10,9 @@ import DeleteIcon from "@mui/icons-material/Delete"
 import { Button } from "@mui/material"
 import { Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton, Slide, Stack, Pagination } from "@mui/material"
 import axios from "axios"
+import { useSnackbar } from "@/app/hooks/useSnackbar"
 
 // Update Product type for dynamic fields
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Product = { id: number, product_uuid: string } & { [key: string]: any }
 
 export default function ProductList() {
@@ -23,6 +24,8 @@ export default function ProductList() {
 
   // Dynamic fields from localStorage
   const [dynamicFields, setDynamicFields] = useState<{ key: string, label: string }[]>([])
+
+  const { showSnackbar } = useSnackbar()
 
   useEffect(() => {
     // Get dynamic fields from localStorage
@@ -81,9 +84,31 @@ export default function ProductList() {
     setDeleteModalOpen(true)
   }
 
-  const handleDeleteConfirm = () => {
-    if (productToDelete) {
+  const handleDeleteConfirm = async () => {
+    if (!productToDelete) return
+
+    const token = localStorage.getItem("token")
+    if (!token) {
+      showSnackbar("Authentication token missing.", "error")
+      setDeleteModalOpen(false)
+      setProductToDelete(null)
+      return
+    }
+
+    try {
+      const res = await axios.delete(
+        `/api/protected/create-product?product_uuid=${productToDelete.product_uuid}`,
+        {
+          headers: {
+            "x-auth-token": `Bearer ${token}`,
+          },
+        }
+      )
       setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id))
+      showSnackbar(res.data.msg, "success")
+    } catch (error:any) {
+      showSnackbar(error?.res?.data?.msg || "Failed to delete product.", "error")
+    } finally {
       setDeleteModalOpen(false)
       setProductToDelete(null)
     }

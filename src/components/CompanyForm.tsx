@@ -23,16 +23,39 @@ import dayjs from 'dayjs';
 const schema = yup.object({
   companyName: yup.string().required('Company name is required'),
   email: yup.string().email('Invalid email').required('Email is required'),
-  password: yup.string().required('Password is required').min(8, 'Password must be at least 8 characters'),
+  password: yup.string().when('$mode', {
+    is: 'create',
+    then: (schema) => schema.required('Password is required').min(8, 'Password must be at least 8 characters'),
+    otherwise: (schema) =>
+      schema
+        .notRequired()
+        .test('min-if-filled', 'Password must be at least 8 characters', (value) => {
+          if (!value) return true;
+          return value.length >= 8;
+        }),
+  }),
   mobileNo: yup.string().required('Mobile number is required').matches(/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number'),
-  defaultMessageNumber: yup.string().required('Default message number is required').matches(/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number'),
+  defaultMessageNumber: yup.string().optional().test('is-valid-phone', 'Please enter a valid 10-digit mobile number', function(value) {
+    if (!value) return true; // Allow empty
+    return /^[0-9]{10}$/.test(value);
+  }),
   startDate: yup.string().required('Start date is required'),
   endDate: yup.string().required('End date is required'),
   modules: yup.array().of(yup.string().oneOf(['quotation_module', 'visit'])).min(1, 'Select at least one module').required('Module is required'),
   status: yup.string().oneOf(['ACTIVE', 'INACTIVE'], 'Status must be Active or Inactive').required('Status is required'),
 }).required();
 
-type CompanyFormData = yup.InferType<typeof schema>;
+type CompanyFormData = {
+  companyName: string;
+  email: string;
+  password?: string;
+  mobileNo: string;
+  defaultMessageNumber?: string;
+  startDate: string;
+  endDate: string;
+  modules: string[];
+  status: 'ACTIVE' | 'INACTIVE';
+};
 
 interface CompanyFormProps {
   mode: 'create' | 'edit';
@@ -82,7 +105,8 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CompanyFormData>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
+    context: { mode },
     defaultValues: {
       modules: [],
       status: 'ACTIVE',
@@ -240,11 +264,11 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
         company_name: data.companyName,
         company_email: data.email,
         company_mobile: data.mobileNo,
-        company_password: data.password,
+        ...(data.password && { company_password: data.password }),
         module: data.modules,
         start_date: data.startDate,
         end_date: data.endDate,
-        company_message_number: data.defaultMessageNumber,
+        ...(data.defaultMessageNumber && { company_message_number: data.defaultMessageNumber }),
         status: data.status,
         ...(isQuotationSelected && quotationFields),
       };
@@ -348,7 +372,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
               </h1>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <TextField
@@ -376,9 +400,9 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
                 <div className="space-y-2">
                   <TextField
                     {...register('password')}
-                    label="Password"
+                    label={mode === 'create' ? 'Password' : 'Password '}
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Create a strong password"
+                    placeholder={mode === 'create' ? 'Create a strong password' : 'Leave blank to keep current password'}
                     error={!!errors.password}
                     helperText={errors.password?.message}
                     fullWidth
@@ -417,7 +441,7 @@ const CompanyForm: React.FC<CompanyFormProps> = ({ mode, companyId }) => {
                     {...register('defaultMessageNumber')}
                     label="Default Message Number"
                     type="tel"
-                    placeholder="Enter default message number"
+                    placeholder="Enter 10-digit default message number"
                     InputProps={{ endAdornment: <MessageIcon className="text-gray-400" /> }}
                     error={!!errors.defaultMessageNumber}
                     helperText={errors.defaultMessageNumber?.message}

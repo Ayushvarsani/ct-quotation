@@ -13,14 +13,14 @@ import {
   Autocomplete,
   CircularProgress,
 } from "@mui/material"
-import { FormatListNumbered, ArrowBack } from "@mui/icons-material"
+import { FormatListNumbered, ArrowBack, Edit } from "@mui/icons-material"
 import { motion } from "framer-motion"
 import { useRouter } from "next/navigation"
 import { useSnackbar } from "@/app/hooks/useSnackbar"
 import axios from "axios"
 
 // Define a type for Autocomplete options
-type AutoOption = { label: string; value: string } | { label: string; isAddOption: true }
+type AutoOption = { label: string; value: string; uuid: string } | { label: string; isAddOption: true }
 
 // Product data interface
 // interface ProductData {
@@ -56,7 +56,7 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
   const [loading, setLoading] = useState(false)
 
   // Autocomplete dropdown options (only for 'product' and 'size')
-  const [options, setOptions] = useState<Record<string, string[]>>({
+  const [options, setOptions] = useState<Record<string, AutoOption[]>>({
     product_name: [],
     product_size: [],
   })
@@ -66,6 +66,10 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
   const [dialogField, setDialogField] = useState<string | null>(null)
   const [dialogValue, setDialogValue] = useState("")
   const [inputValues, setInputValues] = useState<Record<string, string>>({})
+
+  // Add state for edit dialog
+  const [isEditDialog, setIsEditDialog] = useState(false)
+  const [editOptionUuid, setEditOptionUuid] = useState<string | null>(null)
 
   // Check if it's edit mode
   const isEditMode = !!productId
@@ -145,21 +149,30 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
     })
   }, [])
 
-  // Update handleDialogAdd to use API for adding new options
-  const handleDialogAdd = async () => {
+  // Add or update this function in your component:
+  const handleDialogSave = async () => {
     if (dialogField && dialogValue.trim()) {
-      const added = await addDropdownOption(dialogField as "product_name" | "product_size", dialogValue.trim())
-      if (added) {
-        const opts = await fetchDropdownOptions(dialogField as "product_name" | "product_size")
-        setOptions((prev) => ({ ...prev, [dialogField]: opts }))
-        setFormData((prev) => ({
+      let success = false;
+      if (isEditDialog && editOptionUuid) {
+        // Update
+        success = await updateDropdownOption(dialogField as "product_name" | "product_size", editOptionUuid, dialogValue.trim());
+      } else {
+        // Add
+        success = await addDropdownOption(dialogField as "product_name" | "product_size", dialogValue.trim());
+      }
+      if (success) {
+        const opts = await fetchDropdownOptions(dialogField as "product_name" | "product_size");
+        setOptions(prev => ({ ...prev, [dialogField]: opts }));
+        setFormData(prev => ({
           ...prev,
           [dialogField]: dialogValue.trim(),
-        }))
+        }));
       }
-      setDialogOpen(false)
+      setDialogOpen(false);
+      setIsEditDialog(false);
+      setEditOptionUuid(null);
     }
-  }
+  };
 
   const fetchDropdownOptions = async (field: "product_name" | "product_size") => {
     const userStr = localStorage.getItem("user")
@@ -173,8 +186,12 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
       const res = await axios.get(url, {
         headers: { "x-auth-token": `Bearer ${token}` }
       })
-      // Adjust this if your API returns a different structure
-      return res.data?.data?.map((item: any) => item[field]) || []
+      // Expecting API to return uuid fields: product_name_uuid or product_size_uuid
+      return res.data?.data?.map((item: any) => ({
+        label: item[field],
+        value: item[field],
+        uuid: item[`${field}_uuid`] || item["product_name_uuid"] || item["product_size_uuid"] || ""
+      })) || []
     } catch (err) {
       console.error(`Failed to fetch ${field} options:`, err)
       return []
@@ -200,6 +217,48 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
     } catch (err) {
       console.error(`Failed to add ${field}:`, err)
       showSnackbar(`Failed to add ${field}`, "error", 3000)
+      return false
+    }
+  }
+
+  // Add updateDropdownOption function
+  const updateDropdownOption = async (
+    field: "product_name" | "product_size",
+    uuid: string,
+    newValue: string
+  ) => {
+    const userStr = localStorage.getItem("user")
+    const user = userStr ? JSON.parse(userStr) : null
+    const companyUuid = user?.companyuuid
+    const token = localStorage.getItem("token")
+    if (!companyUuid || !token) return false
+
+    let url = ""
+    let body: any = {}
+
+    if (field === "product_name") {
+      url = `/api/protected/product-name?product_uuid=${uuid}`
+      body = {
+        product_name_uuid: uuid,
+        product_name: newValue,
+      }
+    } else {
+      url = `/api/protected/product-size?company_uuid=${companyUuid}`
+      body = {
+        product_size_uuid: uuid,
+        product_size: newValue,
+      }
+    }
+
+    try {
+      await axios.put(url, body, {
+        headers: { "x-auth-token": `Bearer ${token}` },
+      })
+      showSnackbar(`Updated ${field}`, "success", 2000)
+      return true
+    } catch (err) {
+      console.error(`Failed to update ${field}:`, err)
+      showSnackbar(`Failed to update ${field}`, "error", 3000)
       return false
     }
   }
@@ -363,10 +422,19 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
                 {fields.map((field) => {
                   const isAuto = field.key === "product_name" || field.key === "product_size"
                   const value = formData[field.key] || ""
-                  const fieldOptions: AutoOption[] = (options[field.key] || []).map((opt) => ({
-                    label: opt,
-                    value: opt,
-                  }))
+                  // In the fieldOptions mapping, only map .value and .uuid if not isAddOption
+                  const fieldOptions: AutoOption[] = (options[field.key] || []).map((opt) => {
+                    if ('isAddOption' in opt && opt.isAddOption) {
+                      return opt;
+                    } else {
+                      // opt is { label, value, uuid }
+                      return {
+                        label: (opt as any).label,
+                        value: 'value' in opt ? (opt as any).value : '',
+                        uuid: 'uuid' in opt ? (opt as any).uuid : '',
+                      };
+                    }
+                  });
                   return (
                     <div key={field.key} className="space-y-2">
                       {isAuto ? (
@@ -389,25 +457,63 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
                             }))
                           }}
                           options={fieldOptions as AutoOption[]}
-                          filterOptions={(opts) => [...opts, { label: "Add", isAddOption: true } as AutoOption]}
-                          getOptionLabel={(option) => option.label}
+                          filterOptions={(opts) => {
+                            // Only add the 'Add' option if it doesn't already exist
+                            if (!opts.some(opt => 'isAddOption' in opt && opt.isAddOption)) {
+                              return [...opts, { label: 'Add', isAddOption: true } as AutoOption];
+                            }
+                            return opts;
+                          }}
+                          getOptionLabel={(option) => {
+                            // Always return a string, never null/undefined
+                            if (option && typeof option === 'object' && 'label' in option && option.label) {
+                              return String(option.label);
+                            }
+                            return '';
+                          }}
                           isOptionEqualToValue={(option, value) =>
                             "value" in option && "value" in value && option.value === value.value
                           }
                           disabled={isViewMode}
                           renderOption={(props, option) => {
-                            const opt = option as AutoOption
-                            return (
-                              <li {...props} key={opt.label}>
-                                {"isAddOption" in opt && opt.isAddOption ? (
+                            const opt = option as AutoOption;
+                            if ("isAddOption" in opt && opt.isAddOption) {
+                              return (
+                                <li {...props} key="add-option">
                                   <Button variant="outlined" color="primary" fullWidth>
                                     {opt.label}
                                   </Button>
-                                ) : (
-                                  opt.label
-                                )}
-                              </li>
-                            )
+                                </li>
+                              );
+                            } else if (!opt.label || !("value" in opt) || !opt.value) {
+                              // Don't render anything for empty/invalid options
+                              return null;
+                            } else {
+                              // Use uuid if available, otherwise fallback to value or label for key
+                              const optionKey = opt.uuid || opt.value || opt.label;
+                              return (
+                                <li {...props} key={optionKey} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                                  {opt.label}
+                                  <Button
+                                    size="small"
+                                    onClick={e => {
+                                      e.stopPropagation();
+                                      setDialogField(field.key);
+                                      setDialogValue(opt.label);
+                                      setIsEditDialog(true);
+                                      if (!('isAddOption' in opt && opt.isAddOption) && 'uuid' in opt) {
+                                        setEditOptionUuid((opt as { uuid: string }).uuid);
+                                      } else {
+                                        setEditOptionUuid(null);
+                                      }
+                                      setDialogOpen(true);
+                                    }}
+                                  >
+                                    <Edit fontSize="small" />
+                                  </Button>
+                                </li>
+                              );
+                            }
                           }}
                           renderInput={(params) => (
                             <TextField
@@ -477,7 +583,9 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
                 style: { boxShadow: "0 8px 32px rgba(80, 80, 180, 0.15)" },
               }}
             >
-              <DialogTitle className="font-bold text-indigo-700">Add New {dialogField?.toUpperCase()}</DialogTitle>
+              <DialogTitle className="font-bold text-indigo-700">
+                {isEditDialog ? `Edit ${dialogField?.toUpperCase()}` : `Add New ${dialogField?.toUpperCase()}`}
+              </DialogTitle>
               <DialogContent>
                 <TextField
                   fullWidth
@@ -502,14 +610,14 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleDialogAdd}
+                  onClick={handleDialogSave}
                   variant="contained"
                   disabled={!dialogValue.trim()}
                   sx={{
                     background: "linear-gradient(to right, #6366f1, #a21caf)",
                   }}
                 >
-                  Add
+                  {isEditDialog ? "Update" : "Add"}
                 </Button>
               </DialogActions>
             </Dialog>

@@ -42,8 +42,10 @@ const getProductValue = (
   switch (columnKey) {
     case "srNo":
       return index !== undefined ? (index + 1).toString() : "";
-    case "sizeCategory":
-      return `${product.product_size} - ${product.product_category}`;
+    case "size":
+      return product.product_size || ""
+    case "category":
+      return product.product_category || ""
     case "packing":
       return product.product_pieces_per_box?.toString() || "";
     case "sqFt":
@@ -155,75 +157,19 @@ const QuotationPage: React.FC = () => {
     if (productFieldsStr) productFields = JSON.parse(productFieldsStr);
     const dynamicColumns = [
       { key: "srNo", label: "Sr. No.", visible: true },
-      ...(productFields.product_size
-        ? [
-            {
-              key: "sizeCategory",
-              label:
-                productFields.product_size +
-                "-" +
-                productFields.product_category,
-              visible: true,
-            },
-          ]
-        : []),
-      ...(productFields.product_series
-        ? [
-            {
-              key: "series",
-              label: productFields.product_series,
-              visible: true,
-            },
-          ]
-        : []),
-      ...(productFields.product_finish
-        ? [
-            {
-              key: "finish",
-              label: productFields.product_finish,
-              visible: true,
-            },
-          ]
-        : []),
-      ...(productFields.product_pieces_per_box
-        ? [
-            {
-              key: "packing",
-              label: productFields.product_pieces_per_box,
-              visible: true,
-            },
-          ]
-        : []),
-      ...(productFields.product_sq_ft_box
-        ? [
-            {
-              key: "sqFt",
-              label: productFields.product_sq_ft_box,
-              visible: true,
-            },
-          ]
-        : []),
-      ...(productFields.product_weight
-        ? [
-            {
-              key: "weight",
-              label: productFields.product_weight,
-              visible: true,
-            },
-          ]
-        : []),
-      ...(gradeFields.com_grade
-        ? [{ key: "com", label: "Com", visible: true }]
-        : []),
-      ...(gradeFields.eco_grade
-        ? [{ key: "eco", label: "Eco", visible: true }]
-        : []),
-      ...(gradeFields.pre_grade
-        ? [{ key: "premium", label: "Prem.", visible: true }]
-        : []),
-      ...(gradeFields.std_grade
-        ? [{ key: "standard", label: "Std", visible: true }]
-        : []),
+     
+      ...(productFields.product_size ? [{ key: "size", label: productFields.product_size, visible: true }] : []),
+      ...(productFields.product_category ? [{ key: "category", label: productFields.product_category, visible: true }] : []),
+      ...(productFields.product_series ? [{ key: "series", label: productFields.product_series, visible: true }] : []),
+      ...(productFields.product_finish ? [{ key: "finish", label: productFields.product_finish, visible: true }] : []),
+      ...(productFields.product_pieces_per_box ? [{ key: "packing", label: productFields.product_pieces_per_box, visible: true }] : []),
+      ...(productFields.product_sq_ft_box ? [{ key: "sqFt", label: productFields.product_sq_ft_box, visible: true }] : []),
+      ...(productFields.product_weight ? [{ key: "weight", label: productFields.product_weight, visible: true }] : []),
+      ...(gradeFields.com_grade ? [{ key: "com", label: 'Com', visible: true }] : []),
+      ...(gradeFields.eco_grade ? [{ key: "eco", label: 'Eco', visible: true }] : []),
+      ...(gradeFields.pre_grade ? [{ key: "premium", label: 'Prem.', visible: true }] : []),
+      ...(gradeFields.std_grade ? [{ key: "standard", label: 'Std', visible: true }] : []),
+
     ];
     setColumns(dynamicColumns);
   }, []);
@@ -327,7 +273,8 @@ const QuotationPage: React.FC = () => {
       if (length === 0) return 20;
       const baseWidths: { [key: string]: number } = {
         srNo: 15,
-        sizeCategory: 60,
+        size: 25,
+        category: 25,
         packing: 20,
         sqFt: 18,
         weight: 18,
@@ -363,9 +310,11 @@ const QuotationPage: React.FC = () => {
       visibleColumns.forEach((col, index) => {
         columnStyles[index] = {
           cellWidth: getColumnWidth(col.key, visibleColumns.length),
-          halign: col.key === "sizeCategory" ? "left" : "center",
-        };
-      });
+
+          halign: col.key === "size" || col.key === "category" ? "left" : "center",
+        }
+      })
+
       autoTable(doc, {
         startY: yPosition,
         head: [tableHeaders],
@@ -396,14 +345,18 @@ const QuotationPage: React.FC = () => {
         (groupIndex < productGroups.length - 1 ? 8 : 12);
     });
 
-    // Compact Terms and Conditions
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-    doc.text("TERMS & CONDITIONS", 20, yPosition);
-    yPosition += 6;
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "normal");
+    const termsSectionHeight = 25; 
+    if (yPosition + termsSectionHeight > doc.internal.pageSize.height - 20) {
+      doc.addPage();
+      yPosition = 20;
+    }
+    doc.setFontSize(11)
+    doc.setFont("helvetica", "bold")
+    doc.setTextColor(textColor[0], textColor[1], textColor[2])
+    doc.text("TERMS & CONDITIONS", 20, yPosition)
+    yPosition += 6
+    doc.setFontSize(11)
+    doc.setFont("helvetica", "normal")
     const terms = [
       `1. Taxes: ${formData.tax || "As applicable"}`,
       `2. Payment: Within ${
@@ -430,7 +383,7 @@ const QuotationPage: React.FC = () => {
       try {
         const user = JSON.parse(userStr);
         if (user.name || user.usermobile) {
-          generatedBy = `PDF generated by: ${user.name} (${user.usermobile})`;
+          generatedBy = `PDF generated by: ${user.name}`;
         }
       } catch (e) {
         // ignore parse errors
@@ -441,6 +394,11 @@ const QuotationPage: React.FC = () => {
 
     // Add the generated by line at the bottom of the PDF
     if (generatedBy) {
+      // Check if enough space is left for the footer, else add a new page
+      if (yPosition + 15 > doc.internal.pageSize.height - 10) {
+        doc.addPage();
+        yPosition = 20;
+      }
       doc.setFontSize(9);
       doc.setFont("helvetica", "italic");
       doc.setTextColor(120, 120, 120);
@@ -460,155 +418,112 @@ const QuotationPage: React.FC = () => {
     generateModernPDF();
   }, [generateModernPDF]);
 
-  const renderMobileProductGroup = useCallback(
-    (group: ProductGroup) => (
-      <Box>
-        {group.products.map((product, idx) => (
-          <Paper
-            key={product.id}
-            sx={{ p: 2, mb: 2, boxShadow: 2, borderRadius: 2 }}
-          >
-            {/* Always show size-category at the top if enabled */}
-            {columns.find(
-              (col) => col.key === "sizeCategory" && col.visible
-            ) && (
-              <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
-                {product.product_size} - {product.product_category}
-              </Typography>
-            )}
-            <Divider sx={{ mb: 2 }} />
-            <Grid container spacing={2} sx={{ mb: 1 }}>
-              {columns
-                .filter(
-                  (col) =>
-                    col.key !== "sizeCategory" &&
-                    !["premium", "standard", "com", "eco"].includes(col.key) &&
-                    col.visible
-                )
-                .map((col) => (
-                  <Grid size={{ xs: 6 }} key={col.key}>
-                    <Typography variant="body2">
-                      <strong>{col.label}:</strong>{" "}
-                      {getProductValue(product, col.key, idx, productPricing)}
-                    </Typography>
-                  </Grid>
-                ))}
-            </Grid>
-            {/* Pricing fields (editable) */}
-            <Grid container spacing={2} sx={{ mb: 1 }}>
-              {columns
-                .filter(
-                  (col) =>
-                    ["premium", "standard", "com", "eco"].includes(col.key) &&
-                    col.visible
-                )
-                .map((col) => (
-                  <Grid size={{ xs: 6 }} key={col.key}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      variant="outlined"
-                      label={col.label}
-                      value={
-                        productPricing[product.id]?.[
-                          col.key as keyof ProductPricing[number]
-                        ] || ""
-                      }
-                      onChange={handlePricingChange(product.id, col.key as any)}
-                    />
-                  </Grid>
-                ))}
-            </Grid>
-          </Paper>
-        ))}
-      </Box>
-    ),
-    [columns, productPricing, handlePricingChange]
-  );
-
-  const renderDesktopProductGroup = useCallback(
-    (group: ProductGroup) => (
-      <TableContainer component={Paper} sx={{ mb: 3, overflowX: "auto" }}>
-        <Table size="small" sx={{ minWidth: { xs: 700, sm: "auto" } }}>
-          <TableHead>
-            <TableRow sx={{ bgcolor: "#f5f5f5" }}>
-              {columns
-                .filter((col) => col.visible)
-                .map((col) => (
-                  <TableCell
-                    key={col.key}
-                    sx={{
-                      fontWeight: "bold",
-                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                    }}
-                  >
-                    {col.label}
-                  </TableCell>
-                ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {group.products.map((product, idx) => (
-              <TableRow key={product.id} hover>
-                {columns
-                  .filter((col) => col.visible)
-                  .map((col) => {
-                    switch (col.key) {
-                      case "srNo":
-                      case "sizeCategory":
-                      case "packing":
-                      case "sqFt":
-                      case "weight":
-                      case "series":
-                      case "finish":
-                        return (
-                          <TableCell
-                            key={col.key}
-                            sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
-                          >
-                            {getProductValue(
-                              product,
-                              col.key,
-                              col.key === "srNo" ? idx : undefined,
-                              productPricing
-                            )}
-                          </TableCell>
-                        );
-                      case "com":
-                      case "eco":
-                      case "premium":
-                      case "standard":
-                        return (
-                          <TableCell key={col.key}>
-                            <TextField
-                              size="small"
-                              variant="outlined"
-                              placeholder={col.label}
-                              value={
-                                productPricing[product.id]?.[
-                                  col.key as keyof ProductPricing[number]
-                                ] || ""
-                              }
-                              onChange={handlePricingChange(
-                                product.id,
-                                col.key as any
-                              )}
-                              sx={{ width: { xs: 80, sm: 85 } }}
-                            />
-                          </TableCell>
-                        );
-                      default:
-                        return null;
-                    }
-                  })}
-              </TableRow>
+  
+  const renderMobileProductGroup = useCallback((group: ProductGroup) => (
+    <Box>
+      {group.products.map((product, idx) => (
+        <Paper key={product.id} sx={{ p: 2, mb: 2, boxShadow: 2, borderRadius: 2 }}>
+          {/* Always show size-category at the top if enabled */}
+          {columns.find(col => col.key === "size" && col.visible) && (
+            <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
+              {product.product_size}
+            </Typography>
+          )}
+          {columns.find(col => col.key === "category" && col.visible) && (
+            <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
+              {product.product_category}
+            </Typography>
+          )}
+          <Divider sx={{ mb: 2 }} />
+          <Grid container spacing={2} sx={{ mb: 1 }}>
+            {columns.filter(col => col.key !== "size" && col.key !== "category" && !["premium", "standard", "com", "eco"].includes(col.key) && col.visible).map((col) => (
+              <Grid size={{ xs: 6 }} key={col.key}>
+                <Typography variant="body2">
+                  <strong>{col.label}:</strong> {getProductValue(product, col.key, idx, productPricing)}
+                </Typography>
+              </Grid>
             ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    ),
-    [columns, productPricing, handlePricingChange]
-  );
+          </Grid>
+          {/* Pricing fields (editable) */}
+          <Grid container spacing={2} sx={{ mb: 1 }}>
+            {columns.filter(col => ["premium", "standard", "com", "eco"].includes(col.key) && col.visible).map((col) => (
+              <Grid size={{ xs: 6 }} key={col.key}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  variant="outlined"
+                  label={col.label}
+                  value={productPricing[product.id]?.[col.key as keyof ProductPricing[number]] || ""}
+                  onChange={handlePricingChange(product.id, col.key as any)}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
+      ))}
+    </Box>
+  ), [columns, productPricing, handlePricingChange])
+
+  
+  const renderDesktopProductGroup = useCallback((group: ProductGroup) => (
+    <TableContainer component={Paper} sx={{ mb: 3, overflowX: "auto" }}>
+      <Table size="small" sx={{ minWidth: { xs: 700, sm: "auto" } }}>
+        <TableHead>
+          <TableRow sx={{ bgcolor: "#f5f5f5" }}>
+            {columns.filter(col => col.visible).map((col) => (
+              <TableCell
+                key={col.key}
+                sx={{ fontWeight: "bold", fontSize: { xs: "0.75rem", sm: "0.875rem" } }}
+              >
+                {col.label}
+              </TableCell>
+            ))}
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {group.products.map((product, idx) => (
+            <TableRow key={product.id} hover>
+              {columns.filter(col => col.visible).map((col) => {
+                switch (col.key) {
+                  case "srNo":
+                  case "size":
+                  case "category":
+                  case "packing":
+                  case "sqFt":
+                  case "weight":
+                  case "series":
+                  case "finish":
+                    return (
+                      <TableCell key={col.key} sx={{ fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
+                        {getProductValue(product, col.key, col.key === "srNo" ? idx : undefined, productPricing)}
+                      </TableCell>
+                    )
+                  case "com":
+                  case "eco":
+                  case "premium":
+                  case "standard":
+                    return (
+                      <TableCell key={col.key}>
+                        <TextField
+                          size="small"
+                          variant="outlined"
+                          placeholder={col.label}
+                          value={productPricing[product.id]?.[col.key as keyof ProductPricing[number]] || ""}
+                          onChange={handlePricingChange(product.id, col.key as any)}
+                          sx={{ width: { xs: 80, sm: 85 } }}
+                        />
+                      </TableCell>
+                    )
+                  default:
+                    return null
+                }
+              })}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  ), [columns, productPricing, handlePricingChange]);
 
   return (
     <Box

@@ -9,6 +9,7 @@ import DeleteIcon from "@mui/icons-material/Delete"
 import { Button } from "@mui/material"
 import { Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton, Slide, Stack, Pagination, Chip } from "@mui/material"
 import axios from "axios"
+import {useSnackbar} from "@/app/hooks/useSnackbar";
 
 interface User {
   id: string
@@ -95,16 +96,29 @@ export default function UserList() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
 
+  const { showSnackbar } = useSnackbar();
+
   const handleDeleteClick = (user: User) => {
     setUserToDelete(user)
     setDeleteModalOpen(true)
   }
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (userToDelete) {
-      setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id))
-      setDeleteModalOpen(false)
-      setUserToDelete(null)
+      try {
+        const token = localStorage.getItem("token");
+       const res= await axios.delete(
+          `/api/protected/create-customer?customer_uuid=${userToDelete.id}`,
+          token ? { headers: { "x-auth-token": `Bearer ${token}` } } : undefined
+        );
+        setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
+        showSnackbar(res.data.msg, "success");
+      } catch (error:any) {
+        showSnackbar(error?.response?.data?.msg || "Failed to delete user", "error");
+      } finally {
+        setDeleteModalOpen(false);
+        setUserToDelete(null);
+      }
     }
   }
 

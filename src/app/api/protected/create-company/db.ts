@@ -344,3 +344,39 @@ export const getCompany = async (company_uuid: string) => {
     };
   }
 };
+
+export const deleteCompany = async (
+  company_uuid: string,
+  admin_uuid: string
+) => {
+  const query = `update company_info set status='Inactive', deleted_by=$1 where company_uuid=$2 returning company_uuid;`;
+  const query2 = `update customers set is_deleted=true,deleted_by=$1 where company_uuid=$2 returning company_uuid`;
+  const values = [admin_uuid, company_uuid];
+
+  try {
+    const result = await pool.query(query, values);
+    await pool.query(query2, values);
+    if (result.rowCount === 0) {
+      return {
+        msg: "Company not found",
+        code: 404,
+        status: false,
+      };
+    }
+
+    return {
+      msg: "Company deleted successfully",
+      code: 200,
+      status: true,
+      data: result.rows[0],
+    };
+  } catch (error) {
+    console.error("Error updating company:", error);
+    return {
+      msg: "Database error occurred",
+      code: 500,
+      status: false,
+      error,
+    };
+  }
+};

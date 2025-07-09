@@ -7,10 +7,16 @@ export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();
     const user_data = await loginUser(email);
+    if (user_data.data.is_deleted) {
+      return NextResponse.json(
+        { status: false, msg: `Contact Admin To Reactivate Your Account` },
+        { status: 401 }
+      );
+    }
     console.log(user_data);
     if (user_data.status === false) {
       return NextResponse.json(
-        { status: false, msg: `Admin Not Found` },
+        { status: false, msg: `User Not Found` },
         { status: 401 }
       );
     }

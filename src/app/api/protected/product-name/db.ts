@@ -4,10 +4,11 @@ interface AddProductsName {
   company_uuid?: string;
   product_name?: string;
   created_by?: string;
+  product_name_uuid?: string;
 }
 
 export const getProductNames = async (company_uuid: string) => {
-  const query = `select * from product_name_master where company_uuid=$1`;
+  const query = `select * from product_name_master where company_uuid=$1 order by product_name ASC`;
   const values = [company_uuid];
   const result = await pool.query(query, values);
   if (result.rowCount === 0) {
@@ -38,6 +39,25 @@ export const addProductNames = async (data: AddProductsName) => {
   }
   return {
     msg: `Product Added`,
+    code: 200,
+    status: true,
+    data: result.rows[0],
+  };
+};
+
+export const updateProductNames = async (data: AddProductsName) => {
+  const query = `update  product_name_master set product_name=$1 where product_name_uuid=$2`;
+  const values = [data.product_name, data.product_name_uuid];
+  const result = await pool.query(query, values);
+  if (result.rowCount === 0) {
+    return {
+      msg: `Product not Updated`,
+      code: 200,
+      status: false,
+    };
+  }
+  return {
+    msg: `Product Updated`,
     code: 200,
     status: true,
     data: result.rows[0],

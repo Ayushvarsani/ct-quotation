@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  deleteProduct,
   getQuotationProduct,
   registerQuotationProduct,
   updateQuotationProduct,
@@ -93,6 +94,40 @@ export async function PUT(req: Request) {
     );
   } catch (error) {
     console.error("Error Updating Product:", error);
+    return NextResponse.json(
+      { status: false, msg: "Internal Server Error", error },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const userUuid = req.headers.get("x-user-uuid");
+    if (!userUuid) {
+      return NextResponse.json(
+        { status: false, msg: "Unauthorized access" },
+        { status: 401 }
+      );
+    }
+    const { searchParams } = new URL(req.url);
+    const product_uuid = searchParams.get("product_uuid");
+
+    const body = await req.json();
+    body.product_uuid = product_uuid;
+    body.customer_uuid = userUuid;
+
+    const result = await deleteProduct(body.product_uuid);
+    return NextResponse.json(
+      {
+        status: result.status,
+        msg: result.msg,
+        data: result.data,
+      },
+      { status: result.status ? 200 : 400 }
+    );
+  } catch (error) {
+    console.error("Error Deleting Product:", error);
     return NextResponse.json(
       { status: false, msg: "Internal Server Error", error },
       { status: 500 }

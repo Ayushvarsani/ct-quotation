@@ -157,3 +157,36 @@ export const updateQuotationProduct = async (data: QuotationProduct) => {
     data: result.rows[0],
   };
 };
+
+export const deleteProduct = async (product_uuid: string) => {
+  const query = `DELETE FROM public.quotation_products WHERE product_uuid=$1 returning product_uuid;`;
+
+  const values = [product_uuid];
+
+  try {
+    const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return {
+        msg: "Prdouct not found",
+        code: 404,
+        status: false,
+      };
+    }
+
+    return {
+      msg: "Product deleted successfully",
+      code: 200,
+      status: true,
+      data: result.rows[0],
+    };
+  } catch (error) {
+    console.error("Error updating company:", error);
+    return {
+      msg: "Database error occurred",
+      code: 500,
+      status: false,
+      error,
+    };
+  }
+};

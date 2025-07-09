@@ -4,6 +4,7 @@ interface AddProductsSize {
   company_uuid?: string;
   product_size?: string;
   created_by?: string;
+  product_size_uuid?: string;
 }
 
 export const getProductSizes = async (company_uuid: string) => {
@@ -38,6 +39,25 @@ export const addProductSizes = async (data: AddProductsSize) => {
   }
   return {
     msg: `Product Added`,
+    code: 200,
+    status: true,
+    data: result.rows[0],
+  };
+};
+
+export const updateProductSizes = async (data: AddProductsSize) => {
+  const query = `update  product_size_master set product_size=$1 where product_size_uuid=$2`;
+  const values = [data.product_size, data.product_size_uuid];
+  const result = await pool.query(query, values);
+  if (result.rowCount === 0) {
+    return {
+      msg: `Product Size Not Updated`,
+      code: 200,
+      status: false,
+    };
+  }
+  return {
+    msg: `Product Size Updated`,
     code: 200,
     status: true,
     data: result.rows[0],

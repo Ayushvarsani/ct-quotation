@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { addProductNames, getProductNames } from "./db";
+import { addProductNames, getProductNames, updateProductNames } from "./db";
 
 export async function POST(req: Request) {
   try {
@@ -55,6 +55,34 @@ export async function GET(req: Request) {
     );
   } catch (error) {
     console.error("Error Getting Product:", error);
+    return NextResponse.json(
+      { status: false, msg: "Internal Server Error", error },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(req: Request) {
+  try {
+    const userUuid = req.headers.get("x-user-uuid");
+    if (!userUuid) {
+      return NextResponse.json(
+        { status: false, msg: "Unauthorized access" },
+        { status: 401 }
+      );
+    }
+    const body = await req.json();
+    const result = await updateProductNames(body);
+    return NextResponse.json(
+      {
+        status: result.status,
+        msg: result.msg,
+        data: result.data,
+      },
+      { status: result.status ? 200 : 400 }
+    );
+  } catch (error) {
+    console.error("Error Adding Products:", error);
     return NextResponse.json(
       { status: false, msg: "Internal Server Error", error },
       { status: 500 }

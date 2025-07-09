@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   createQuotationLabel,
+  deleteCompany,
   getCompany,
   registerCompany,
   updateCompany,
@@ -173,6 +174,35 @@ export async function GET(req: Request) {
       a.push("bussiness_card_module");
     }
     result.data.module = a;
+    return NextResponse.json(
+      {
+        status: result.status,
+        msg: result.msg,
+        data: result.data,
+      },
+      { status: result.status ? 200 : 400 }
+    );
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { status: false, msg: "Internal Server Error", error },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const userUuid = req.headers.get("x-user-uuid");
+
+    if (!userUuid) {
+      return NextResponse.json(
+        { status: false, msg: "Unauthorized access" },
+        { status: 401 }
+      );
+    }
+    const { searchParams } = new URL(req.url);
+    const company_uuid = searchParams.get("company_uuid");
+    const result = await deleteCompany(String(company_uuid), userUuid);
     return NextResponse.json(
       {
         status: result.status,

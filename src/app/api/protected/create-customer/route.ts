@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { getCustomer, registerCustomer, updateCustomer } from "./db";
+import {
+  deleteCustomer,
+  getCustomer,
+  registerCustomer,
+  updateCustomer,
+} from "./db";
 import { hashPassword } from "../../utils/passwordGenerator";
 import { DatabaseError } from "pg";
 
@@ -147,5 +152,33 @@ export async function GET(req: Request) {
         { status: 500 }
       );
     }
+  }
+}
+export async function DELETE(req: Request) {
+  try {
+    const userUuid = req.headers.get("x-user-uuid");
+
+    if (!userUuid) {
+      return NextResponse.json(
+        { status: false, msg: "Unauthorized access" },
+        { status: 401 }
+      );
+    }
+    const { searchParams } = new URL(req.url);
+    const customer_uuid = searchParams.get("customer_uuid");
+    const result = await deleteCustomer(String(customer_uuid), userUuid);
+    return NextResponse.json(
+      {
+        status: result.status,
+        msg: result.msg,
+        data: result.data,
+      },
+      { status: result.status ? 200 : 400 }
+    );
+  } catch (error: unknown) {
+    return NextResponse.json(
+      { status: false, msg: "Internal Server Error", error },
+      { status: 500 }
+    );
   }
 }

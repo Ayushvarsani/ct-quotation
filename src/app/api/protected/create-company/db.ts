@@ -214,7 +214,16 @@ export const updateCompany = async (data: CompanyInfo) => {
 
   try {
     const result = await pool.query(query, values);
-
+    if (data.status === "INACTIVE") {
+      const query2 = `update customers set status='INACTIVE',deleted_by=$1 where company_uuid=$2 returning company_uuid`;
+      const values = [data.created_by, data.company_uuid];
+      await pool.query(query2, values);
+    }
+    if (data.status === "ACTIVE") {
+      const query2 = `update customers set status='ACTIVE',deleted_by=$1 where company_uuid=$2 returning company_uuid`;
+      const values = [data.created_by, data.company_uuid];
+      await pool.query(query2, values);
+    }
     if (result.rowCount === 0) {
       return {
         msg: "Company not found or update failed",
@@ -345,17 +354,20 @@ export const getCompany = async (company_uuid: string) => {
   }
 };
 
-export const deleteCompany = async (
-  company_uuid: string,
-  admin_uuid: string
-) => {
-  const query = `update company_info set status='Inactive', deleted_by=$1 where company_uuid=$2 returning company_uuid;`;
-  const query2 = `update customers set is_deleted=true,deleted_by=$1 where company_uuid=$2 returning company_uuid`;
-  const values = [admin_uuid, company_uuid];
+export const deleteCompany = async (company_uuid: string) => {
+  const query2 = `DELETE FROM public.customers WHERE company_uuid=$1 returning company_uuid;`;
+  const query3 = `DELETE FROM public.product_name_master WHERE company_uuid=$1 returning company_uuid;`;
+  const query4 = `DELETE FROM public.product_size_master WHERE company_uuid=$1 returning company_uuid;`;
+  const query = `DELETE FROM public.company_info WHERE company_uuid=$1 returning company_uuid;`;
+
+  const values = [company_uuid];
 
   try {
-    const result = await pool.query(query, values);
+    await pool.query(query3, values);
+    await pool.query(query4, values);
     await pool.query(query2, values);
+    const result = await pool.query(query, values);
+
     if (result.rowCount === 0) {
       return {
         msg: "Company not found",

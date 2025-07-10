@@ -166,7 +166,7 @@ export async function DELETE(req: Request) {
     }
     const { searchParams } = new URL(req.url);
     const customer_uuid = searchParams.get("customer_uuid");
-    const result = await deleteCustomer(String(customer_uuid), userUuid);
+    const result = await deleteCustomer(String(customer_uuid));
     return NextResponse.json(
       {
         status: result.status,

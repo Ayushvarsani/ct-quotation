@@ -156,12 +156,9 @@ export const getCustomer = async (customer_uuid: string) => {
   }
 };
 
-export const deleteCustomer = async (
-  customer_uuid: string,
-  admin_uuid: string
-) => {
-  const query2 = `update customers set is_deleted=true ,deleted_by=$1 where customer_uuid=$2 returning customer_uuid`;
-  const values = [admin_uuid, customer_uuid];
+export const deleteCustomer = async (customer_uuid: string) => {
+  const query2 = `DELETE FROM public.customers WHERE customer_uuid=$1 returning customer_uuid;`;
+  const values = [customer_uuid];
 
   try {
     const result = await pool.query(query2, values);

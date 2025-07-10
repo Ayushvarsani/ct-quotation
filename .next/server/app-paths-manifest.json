@@ -1,8 +1,3 @@
 {
-  "/api/protected/create-company/route": "app/api/protected/create-company/route.js",
-  "/api/protected/create-customer/route": "app/api/protected/create-customer/route.js",
-  "/api/protected/create-product/route": "app/api/protected/create-product/route.js",
-  "/api/protected/product-name/route": "app/api/protected/product-name/route.js",
-  "/api/protected/product-size/route": "app/api/protected/product-size/route.js",
-  "/api/user-login/route": "app/api/user-login/route.js"
+  "/api/protected/product-name/route": "app/api/protected/product-name/route.js"
 }

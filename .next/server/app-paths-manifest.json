@@ -1,8 +1,18 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
+  "/admin/companies/[id]/edit/page": "app/admin/companies/[id]/edit/page.js",
+  "/admin/companies/create/page": "app/admin/companies/create/page.js",
+  "/admin/companies/page": "app/admin/companies/page.js",
+  "/admin/login/page": "app/admin/login/page.js",
   "/api/protected/create-company/route": "app/api/protected/create-company/route.js",
-  "/api/protected/create-customer/route": "app/api/protected/create-customer/route.js",
   "/api/protected/create-product/route": "app/api/protected/create-product/route.js",
+  "/api/protected/get-all-companies/route": "app/api/protected/get-all-companies/route.js",
   "/api/protected/product-name/route": "app/api/protected/product-name/route.js",
   "/api/protected/product-size/route": "app/api/protected/product-size/route.js",
-  "/api/user-login/route": "app/api/user-login/route.js"
+  "/api/user-login/route": "app/api/user-login/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/page": "app/page.js",
+  "/user/products/add/page": "app/user/products/add/page.js",
+  "/user/products/page": "app/user/products/page.js",
+  "/user/quotation/page": "app/user/quotation/page.js"
 }

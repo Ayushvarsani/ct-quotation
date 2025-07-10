@@ -5,15 +5,15 @@ export interface QuotationProduct {
   product_name?: string;
   product_category?: string;
   product_size?: string;
-  product_quantity?: number;
-  product_cost?: number;
+  product_quantity?: string;
+  product_cost?: string;
   customer_uuid: string;
   company_uuid?: string;
   product_series?: string;
   product_finish?: string;
-  product_pieces_per_box?: number;
-  product_weight?: number;
-  product_sq_ft_box?: number;
+  product_pieces_per_box?: string;
+  product_weight?: string;
+  product_sq_ft_box?: string;
 }
 export interface CompanyProduct {
   company_uuid: string;

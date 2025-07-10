@@ -8,7 +8,7 @@ interface AddProductsName {
 }
 
 export const getProductNames = async (company_uuid: string) => {
-  const query = `select * from product_name_master where company_uuid=$1 order by product_name ASC`;
+  const query = `select * from product_name_master where company_uuid=$1 order by LOWER(product_name) ASC`;
   const values = [company_uuid];
   const result = await pool.query(query, values);
   if (result.rowCount === 0) {

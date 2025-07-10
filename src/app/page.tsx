@@ -143,7 +143,7 @@ export default function LoginPage() {
   // }
 
   return (
-    <div className="min-h-screen flex flex-col md:flex-row bg-gray-50 text-gray-900 transition-colors duration-300">
+    <div className="min-h-screen flex flex-col items-center justify-center md:flex-row md:items-stretch md:justify-start bg-gray-50 text-gray-900 transition-colors duration-300">
       {/* Left side - Branding and information */}
       <div className="hidden md:flex md:w-1/2 bg-gradient-to-br from-indigo-600 to-purple-700 p-12 relative overflow-hidden">
         <div className="relative z-10 flex flex-col h-full justify-between">
@@ -210,9 +210,9 @@ export default function LoginPage() {
             {/* Form header */}
             <div className="text-center">
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
+                // initial={{ opacity: 0 }}
+                // animate={{ opacity: 1 }}
+                // transition={{ delay: 0.2 }}
                 className="flex justify-center items-center"
               >
                 <h2 className="text-3xl font-bold text-gray-900 mb-2 text-center">Welcome Back</h2>
@@ -225,9 +225,9 @@ export default function LoginPage() {
               <AnimatePresence>
                 {loginError && (
                   <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                    // initial={{ opacity: 0, y: -10 }}
+                    // animate={{ opacity: 1, y: 0 }}
+                    // exit={{ opacity: 0, y: -10 }}
                     className="p-3 rounded-lg bg-red-50 border border-red-200 flex items-center space-x-2"
                   >
                     <ErrorOutline className="text-red-500" />
@@ -237,9 +237,9 @@ export default function LoginPage() {
 
                 {loginSuccess && (
                   <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
+                    // initial={{ opacity: 0, y: -10 }}
+                    // animate={{ opacity: 1, y: 0 }}
+                    // exit={{ opacity: 0, y: -10 }}
                     className="p-3 rounded-lg bg-green-50 border border-green-200 flex items-center space-x-2"
                   >
                     <CheckCircleOutline className="text-green-500" />
@@ -270,9 +270,9 @@ export default function LoginPage() {
                   <AnimatePresence>
                     {errors.email && (
                       <motion.p
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
+                        // initial={{ opacity: 0, height: 0 }}
+                        // animate={{ opacity: 1, height: "auto" }}
+                        // exit={{ opacity: 0, height: 0 }}
                         className="mt-1 text-sm text-red-600"
                       >
                         {errors.email.message}
@@ -321,9 +321,9 @@ export default function LoginPage() {
                   <AnimatePresence>
                     {errors.password && (
                       <motion.p
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
+                        // initial={{ opacity: 0, height: 0 }}
+                        // animate={{ opacity: 1, height: "auto" }}
+                        // exit={{ opacity: 0, height: 0 }}
                         className="mt-1 text-sm text-red-600"
                       >
                         {errors.password.message}

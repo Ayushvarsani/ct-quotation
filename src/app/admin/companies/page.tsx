@@ -10,6 +10,7 @@ import DeleteIcon from "@mui/icons-material/Delete"
 import { Button } from "@mui/material"
 import { Tooltip, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, IconButton, Slide, Stack, Pagination,CircularProgress } from "@mui/material"
 import axios from "axios"
+import { useSnackbar } from "@/app/hooks/useSnackbar";
 
 interface Company {
   company_uuid: string
@@ -30,6 +31,7 @@ export default function CompanyList() {
   // Modal state
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null)
+  const { showSnackbar } = useSnackbar();
 
   useEffect(() => {
     const fetchCompanies = async () => {
@@ -55,13 +57,27 @@ export default function CompanyList() {
     setDeleteModalOpen(true)
   }
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (companyToDelete) {
-      setCompanies((prev) => prev.filter((c) => c.company_uuid !== companyToDelete.company_uuid))
-      setDeleteModalOpen(false)
-      setCompanyToDelete(null)
+      try {
+        const token = localStorage.getItem("admin_jwt_token");
+        await axios.delete(`/api/protected/create-company`, {
+          params: { company_uuid: companyToDelete.company_uuid },
+          headers: {
+            "x-auth-token": `Bearer ${token}`,
+          },
+        });
+        setCompanies((prev) => prev.filter((c) => c.company_uuid !== companyToDelete.company_uuid));
+        showSnackbar("Company deleted successfully", "success");
+      } catch (error) {
+        showSnackbar("Failed to delete company", "error");
+        console.error("Failed to delete company", error);
+      } finally {
+        setDeleteModalOpen(false);
+        setCompanyToDelete(null);
+      }
     }
-  }
+  };
 
   const formatDate = (dateString: string) => {
     if (!dateString) return "";

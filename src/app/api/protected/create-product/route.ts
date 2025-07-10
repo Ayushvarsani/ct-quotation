@@ -113,11 +113,7 @@ export async function DELETE(req: Request) {
     const { searchParams } = new URL(req.url);
     const product_uuid = searchParams.get("product_uuid");
 
-    const body = await req.json();
-    body.product_uuid = product_uuid;
-    body.customer_uuid = userUuid;
-
-    const result = await deleteProduct(body.product_uuid);
+    const result = await deleteProduct(String(product_uuid));
     return NextResponse.json(
       {
         status: result.status,

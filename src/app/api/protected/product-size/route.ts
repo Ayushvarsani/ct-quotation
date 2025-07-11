@@ -79,10 +79,10 @@ export async function PUT(req: Request) {
         msg: result.msg,
         data: result.data,
       },
-      { status: result.status ? 200 : 400 }
+      { status: result.code }
     );
   } catch (error) {
-    console.error("Error Adding Products:", error);
+    console.error("Error Updating Product Size:", error);
     return NextResponse.json(
       { status: false, msg: "Internal Server Error", error },
       { status: 500 }

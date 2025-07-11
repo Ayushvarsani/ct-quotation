@@ -214,9 +214,9 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
       })
       showSnackbar(`Added new ${field}`, "success", 2000)
       return true
-    } catch (err) {
-      console.error(`Failed to add ${field}:`, err)
-      showSnackbar(`Failed to add ${field}`, "error", 3000)
+    } catch (err: any) {
+      console.error(`Failed to add ${field}:`, err.response.data.msg)
+      showSnackbar(err.response.data.msg, "error", 3000)
       return false
     }
   }
@@ -256,9 +256,9 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
       })
       showSnackbar(`Updated ${field}`, "success", 2000)
       return true
-    } catch (err) {
-      console.error(`Failed to update ${field}:`, err)
-      showSnackbar(`Failed to update ${field}`, "error", 3000)
+    } catch (err: any) {
+      console.error(`Failed to update ${field}:`, err.response.data.msg)
+      showSnackbar(err.response.data.msg, "error", 3000)
       return false
     }
   }

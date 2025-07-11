@@ -113,6 +113,7 @@ export default function UserList() {
         );
         setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
         showSnackbar(res.data.msg, "success");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error:any) {
         showSnackbar(error?.response?.data?.msg || "Failed to delete user", "error");
       } finally {

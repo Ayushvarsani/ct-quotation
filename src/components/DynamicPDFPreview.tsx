@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 import type React from "react"
 import { useState } from "react"
@@ -392,13 +393,13 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
     }
   }
 
-  const handleWhatsAppDirect = () => {
-    const message = encodeURIComponent(
-      `Hi ${formData.Name}, please find your quotation. We will send the PDF document separately.`,
-    )
-    const whatsappUrl = `https://wa.me/${formData.mobile}?text=${message}`
-    window.open(whatsappUrl, "_blank")
-  }
+  // const handleWhatsAppDirect = () => {
+  //   const message = encodeURIComponent(
+  //     `Hi ${formData.Name}, please find your quotation. We will send the PDF document separately.`,
+  //   )
+  //   const whatsappUrl = `https://wa.me/${formData.mobile}?text=${message}`
+  //   window.open(whatsappUrl, "_blank")
+  // }
 
   const userData = localStorage.getItem("user")
   const parsedUser = userData ? JSON.parse(userData) : {}

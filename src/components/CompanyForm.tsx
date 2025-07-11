@@ -35,7 +35,7 @@ const schema = yup.object({
         }),
   }),
   mobileNo: yup.string().required('Mobile number is required').matches(/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number'),
-  defaultMessageNumber: yup.string().optional().test('is-valid-phone', 'Please enter a valid 10-digit mobile number', function(value) {
+  defaultMessageNumber: yup.string().notRequired().test('is-valid-phone', 'Please enter a valid 10-digit mobile number', function(value) {
     if (!value) return true; // Allow empty
     return /^[0-9]{10}$/.test(value);
   }),

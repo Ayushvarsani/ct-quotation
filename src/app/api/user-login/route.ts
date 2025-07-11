@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   try {
     const { email, password } = await req.json();
     const user_data = await loginUser(email);
-    if ((user_data.data.status = "INACTIVE")) {
+    if ((user_data.data.status === "INACTIVE")) {
       return NextResponse.json(
         { status: false, msg: `Contact Admin To Reactivate Your Account` },
         { status: 401 }

@@ -374,7 +374,7 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview, 
     return (
       <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "50vh" }}>
         <CircularProgress size={40} />
-        <Typography sx={{ ml: 2 }}>Loading products...</Typography>
+        <Typography sx={{ ml: 2 }}>Loading Quotation...</Typography>
       </Box>
     )
   }
@@ -568,14 +568,17 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview, 
               <Box component="li">
                 <Box
                   sx={{
-                    display: { xs: "block", sm: "flex" },
+                    display: { xs: "flex", sm: "flex" },
                     alignItems: "center",
-                    gap: 1,
+                    gap: 1.5,
+                    px: 0,
+                    py: 0.5,
                   }}
                 >
                   <Typography
                     sx={{
-                      fontSize: { xs: "0.9rem", sm: "1rem" },
+                      fontSize: { xs: "0.95rem", sm: "1.05rem" },
+                      fontWeight: 500,
                       mb: { xs: 1, sm: 0 },
                     }}
                   >
@@ -583,8 +586,8 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview, 
                   </Typography>
                   <TextField
                     size="small"
-                    variant="standard"
-                    sx={{ width: { xs: "100%", sm: 150 } }}
+                    variant="outlined"
+                    sx={{ width: { xs: "100%", sm: 180 } }}
                     placeholder="Enter tax details"
                     required
                     value={formData.tax}
@@ -595,15 +598,18 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview, 
               <Box component="li">
                 <Box
                   sx={{
-                    display: { xs: "block", sm: "flex" },
+                    display: { xs: "flex", sm: "flex" },
                     alignItems: "center",
-                    gap: 1,
+                    gap: 1.5,
                     flexWrap: "wrap",
+                    px: 0,
+                    py: 0.5,
                   }}
                 >
                   <Typography
                     sx={{
-                      fontSize: { xs: "0.9rem", sm: "1rem" },
+                      fontSize: { xs: "0.95rem", sm: "1.05rem" },
+                      fontWeight: 500,
                       mr: { sm: 1 },
                       mb: { xs: 1, sm: 0 },
                     }}
@@ -612,23 +618,26 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview, 
                   </Typography>
                   <TextField
                     size="small"
-                    variant="standard"
+                    variant="outlined"
                     sx={{ width: { xs: "100%", sm: 100 }, mr: { sm: 1 } }}
                     placeholder="Days"
                     required
                     value={formData.paymentWithDays}
                     onChange={handleInputChange("paymentWithDays")}
                   />
-                  <Typography sx={{ fontSize: { xs: "0.9rem", sm: "1rem" } }}>from date of billing</Typography>
+                  <Typography sx={{ fontSize: { xs: "0.95rem", sm: "1.05rem" } }}>from date of billing</Typography>
                 </Box>
               </Box>
               <Box component="li">
                 <TextField
                   size="small"
-                  variant="standard"
+                  variant="outlined"
                   fullWidth
+                  multiline
+                  minRows={2}
+                  maxRows={2}
                   placeholder="Additional notes"
-                  sx={{ maxWidth: { xs: "100%", sm: 400 } }}
+                  sx={{ maxWidth: { xs: "100%", sm: 400, md: 600 } }}
                   value={formData.remark}
                   onChange={handleInputChange("remark")}
                 />
@@ -649,7 +658,7 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview, 
             {isClient &&
               (isMobile ? (
                 <>
-                  <IconButton
+                  {/* <IconButton
                     onClick={handleShare}
                     disabled={isGenerating}
                     sx={{
@@ -661,7 +670,7 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview, 
                   >
                     <Share sx={{ mr: 1 }} />
                     <Typography variant="body2">Share</Typography>
-                  </IconButton>
+                  </IconButton> */}
                   <IconButton
                     onClick={handlePreview}
                     disabled={isGenerating || productGroups.length === 0}
@@ -679,7 +688,7 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview, 
                 </>
               ) : (
                 <>
-                  <Button
+                  {/* <Button
                     variant="outlined"
                     startIcon={<Share />}
                     onClick={handleShare}
@@ -687,7 +696,7 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview, 
                     sx={{ px: 3 }}
                   >
                     Share
-                  </Button>
+                  </Button> */}
                   <Button
                     variant="contained"
                     startIcon={isGenerating ? <CircularProgress size={20} color="inherit" /> : <Visibility />}

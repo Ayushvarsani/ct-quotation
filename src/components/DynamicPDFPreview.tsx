@@ -140,12 +140,24 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
   const [sendStatus, setSendStatus] = useState<"idle" | "success" | "error">("idle")
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
 
+  const pricingColumnKeys = ["com", "eco", "premium", "standard"];
+  const srNoColumn = columns.find(col => col.key === "srNo");
+  const pricingColumns = columns.filter(col => pricingColumnKeys.includes(col.key));
+  const otherColumns = columns.filter(
+    col => col.key !== "srNo" && !pricingColumnKeys.includes(col.key)
+  );
+  const previewColumns = [
+    ...(srNoColumn ? [srNoColumn] : []),
+    ...pricingColumns,
+    ...otherColumns,
+  ].filter(col => col.visible);
+
   const generatePDF = () => {
     const doc = new jsPDF("p", "mm", "a4")
     const pageWidth = doc.internal.pageSize.width
     let yPosition = 15
 
-    // Professional colors
+    
     const headerColor: [number, number, number] = [52, 73, 94]
     const borderColor: [number, number, number] = [180, 180, 180]
     const textColor: [number, number, number] = [0, 0, 0]
@@ -628,60 +640,56 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
                     >
                       <TableHead>
                         <TableRow sx={{ bgcolor: "#f8f8f8" }}>
-                          {columns
-                            .filter((col) => col.visible)
-                            .map((col) => (
-                              <TableCell
-                                key={col.key}
-                                sx={{
-                                  fontWeight: "bold",
-                                  fontSize: "0.9rem",
-                                  textAlign: "center",
-                                  border: "1px solid #ddd",
-                                  py: 1,
-                                  px: 1,
-                                  whiteSpace: "nowrap",
-                                }}
-                              >
-                                {col.label}
-                              </TableCell>
-                            ))}
+                          {previewColumns.map((col) => (
+                            <TableCell
+                              key={col.key}
+                              sx={{
+                                fontWeight: "bold",
+                                fontSize: "0.9rem",
+                                textAlign: "center",
+                                border: "1px solid #ddd",
+                                py: 1,
+                                px: 1,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {col.label}
+                            </TableCell>
+                          ))}
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {group.products.map((product, idx) => (
                           <TableRow key={product.id}>
-                            {columns
-                              .filter((col) => col.visible)
-                              .map((col) => (
-                                <TableCell
-                                  key={col.key}
-                                  sx={{
-                                    fontSize: "0.9rem",
-                                    textAlign: "center",
-                                    border: "1px solid #ddd",
-                                    py: 1,
-                                    px: 1,
-                                    fontWeight: ["com", "eco", "premium", "standard"].includes(col.key)
-                                      ? "bold"
-                                      : "normal",
-                                    color: ["com", "eco", "premium", "standard"].includes(col.key)
-                                      ? "#1976d2"
-                                      : "inherit",
-                                    whiteSpace: "nowrap",
-                                    overflow: "hidden",
-                                    textOverflow: "ellipsis",
-                                    maxWidth: "150px",
-                                  }}
-                                >
-                                  {getProductValue(
-                                    product,
-                                    col.key,
-                                    col.key === "srNo" ? idx : undefined,
-                                    productPricing,
-                                  )}
-                                </TableCell>
-                              ))}
+                            {previewColumns.map((col) => (
+                              <TableCell
+                                key={col.key}
+                                sx={{
+                                  fontSize: "0.9rem",
+                                  textAlign: "center",
+                                  border: "1px solid #ddd",
+                                  py: 1,
+                                  px: 1,
+                                  fontWeight: ["com", "eco", "premium", "standard"].includes(col.key)
+                                    ? "bold"
+                                    : "normal",
+                                  color: ["com", "eco", "premium", "standard"].includes(col.key)
+                                    ? "#1976d2"
+                                    : "inherit",
+                                  whiteSpace: "nowrap",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                  maxWidth: "150px",
+                                }}
+                              >
+                                {getProductValue(
+                                  product,
+                                  col.key,
+                                  col.key === "srNo" ? idx : undefined,
+                                  productPricing,
+                                )}
+                              </TableCell>
+                            ))}
                           </TableRow>
                         ))}
                       </TableBody>

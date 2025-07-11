@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import { useState, useEffect } from "react"
@@ -113,7 +114,6 @@ export default function UserList() {
         );
         setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
         showSnackbar(res.data.msg, "success");
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error:any) {
         showSnackbar(error?.response?.data?.msg || "Failed to delete user", "error");
       } finally {
@@ -210,22 +210,25 @@ export default function UserList() {
                       />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex gap-2">
-                        <Tooltip title="Edit" arrow>
-                          <Link href={`/user/users/${user.id}/edit`} className="text-green-600 hover:text-green-900">
-                            <IconButton size="small" color="success">
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Link>
-                        </Tooltip>
-                        <Tooltip title="Delete" arrow>
-                          <span>
-                            <IconButton size="small" color="error" onClick={() => handleDeleteClick(user)}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                      </div>
+                        <div className="flex gap-2">
+                          <Tooltip title="Edit" arrow>
+                            <Link href={`/user/users/${user.id}/edit`} className="text-green-600 hover:text-green-900">
+                              <IconButton size="small" color="success">
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Link>
+                          </Tooltip>
+                          {user.customerRole !== 1 && (
+                          <Tooltip title="Delete" arrow>
+                            <span>
+                              <IconButton size="small" color="error" onClick={() => handleDeleteClick(user)}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                             )}
+                        </div>
+                   
                     </td>
                   </tr>
                 ))}
@@ -289,6 +292,7 @@ export default function UserList() {
                     <EditIcon className="w-4 h-4" />
                     Edit
                   </Link>
+                   {user.customerRole !== 1 && (
                   <button
                     onClick={() => handleDeleteClick(user)}
                     className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-colors"
@@ -296,6 +300,7 @@ export default function UserList() {
                     <DeleteIcon className="w-4 h-4" />
                     Delete
                   </button>
+                    )}
                 </div>
               </div>
             </motion.div>

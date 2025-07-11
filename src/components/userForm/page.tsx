@@ -27,7 +27,10 @@ interface UserFormProps {
 const userSchema = yup.object().shape({
   name: yup.string().required('Name is required').min(2, 'Name must be at least 2 characters'),
   email: yup.string().required('Email is required').email('Please enter a valid email address'),
-  mobileNumber: yup.string().required('Mobile number is required').matches(/^[0-9]{10}$/, 'Please enter a valid 10-digit mobile number'),
+  mobileNumber: yup.string().notRequired().test('is-valid-phone', 'Please enter a valid 10-digit mobile number', function(value) {
+    if (!value) return true; // Allow empty
+    return /^[0-9]{10}$/.test(value);
+  }),
   password: yup.string().when('mode', {
     is: (mode: string) => mode === 'create',
     then: schema => schema.required('Password is required').min(6, 'Password must be at least 6 characters'),

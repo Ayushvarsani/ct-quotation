@@ -1,11 +1,12 @@
 /* eslint-disable @next/next/no-img-element */
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import {  FiUser, FiPhone, FiBriefcase,  FiArrowLeft } from 'react-icons/fi';
-import * as Yup from 'yup';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { FiUser, FiPhone, FiBriefcase, FiArrowLeft } from "react-icons/fi";
+import * as Yup from "yup";
+import axios from "axios";
 
 interface UserProfile {
   name: string;
@@ -17,31 +18,96 @@ interface UserProfile {
   profileImage?: string;
 }
 
+interface Customer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  company_uuid: string;
+  created_at: string;
+  // Add other customer fields as needed
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile>({
-    name: '',
-    email: '',
-    mobileNo: '',
-    defaultMessageNo: '',
-    companyName: '',
-    designation: '',
-    profileImage: ''
+    name: "",
+    email: "",
+    mobileNo: "",
+    defaultMessageNo: "",
+    companyName: "",
+    designation: "",
+    profileImage: "",
   });
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState(0);
   const [modules, setModules] = useState<string[] | null>(null);
   // const [waSettings, setWaSettings] = useState<{ [module: string]: { apiKey: string; sender: string } }>({});
-  const [waForm, setWaForm] = useState<{ apiKey: string; sender: string }>({ apiKey: '', sender: '' });
+  const [waForm, setWaForm] = useState<{ apiKey: string; sender: string }>({
+    apiKey: "",
+    sender: "",
+  });
   const [defaultMsgError, setDefaultMsgError] = useState<string | null>(null);
   const [defaultMsgLoading, setDefaultMsgLoading] = useState(false);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customersError, setCustomersError] = useState<string | null>(null);
 
   // Yup schema for Default Message Number
   const defaultMsgSchema = Yup.object().shape({
     defaultMessageNo: Yup.string()
-      .required('Default Message Number is required')
-      .matches(/^\+?\d{10,15}$/, 'Enter a valid phone number'),
+      .required("Default Message Number is required")
+      .matches(/^\+?\d{10,15}$/, "Enter a valid phone number"),
   });
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    // if (userData) {
+      const parsedData = JSON.parse(userData);
+      fetchCustomersByCompany(parsedData.customeruuid);
+    // }
+  }, []);
+
+  // Function to fetch customers by company
+  const fetchCustomersByCompany = async (customerUuid: string) => {
+    setCustomersLoading(true);
+    setCustomersError(null);
+    const token = localStorage.getItem("admin_jwt_token");
+
+    try {
+      const userData = localStorage.getItem("user");
+      if (!userData) {
+        setCustomersError("User data not found");
+        return;
+      }
+
+      const user = JSON.parse(userData);
+      const response = await axios.get(
+        `/api/protected/get-customers-by-company?customer_uuid=${customerUuid}`,
+        {
+          method: "GET",
+          headers: {
+            "x-auth-token": `Bearer ${token}`,
+          },
+        }
+      );
+      console.log(response);
+
+      // const result = await response.json();
+
+      // if (result.status) {
+      //   setCustomers(result.data || []);
+      // } else {
+      //   setCustomersError(result.msg || 'Failed to fetch customers');
+      //   setCustomers([]);
+      // }
+    } catch (error) {
+      console.error("Error fetching customers:", error);
+      setCustomersError("An error occurred while fetching customers");
+      setCustomers([]);
+    } finally {
+      setCustomersLoading(false);
+    }
+  };
 
   useEffect(() => {
     // Get user data from localStorage

@@ -39,4 +39,4 @@ export async function GET(req: Request) {
       { status: 500 }
     );
   }
-} 
+}

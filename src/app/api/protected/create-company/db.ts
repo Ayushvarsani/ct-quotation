@@ -18,6 +18,7 @@ export interface CompanyInfo {
   start_date?: Date;
   end_date?: Date;
   company_message_number?: string;
+  whatsapp_api_key?: string;
 }
 interface QuotationLabel {
   company_uuid?: string;

@@ -127,20 +127,55 @@ export default function ProfilePage() {
     };
   }, []);
 
+  // Load WhatsApp API key from database
+  const loadWhatsAppApiKey = async () => {
+    try {
+      const userData = localStorage.getItem('user');
+      const token = localStorage.getItem("admin_jwt_token");
+      
+      if (!userData || !token) {
+        return;
+      }
+
+      const user = JSON.parse(userData);
+      const companyUuid = user.companyuuid;
+
+      const response = await axios.get(
+        `/api/protected/whatsapp-api-key?company_uuid=${companyUuid}`,
+        {
+          headers: {
+            "x-auth-token": `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data.status && response.data.data.whatsapp_api_key) {
+        setWaForm(prev => ({ ...prev, apiKey: response.data.data.whatsapp_api_key }));
+      }
+    } catch (error) {
+      console.error('Error loading WhatsApp API key:', error);
+    }
+  };
+
   // Load WhatsApp settings for selected tab
   useEffect(() => {
     if (modules && modules[selectedTab]) {
+      // Load from database first
+      loadWhatsAppApiKey();
+      
+      // Fallback to localStorage if needed
       const mod = modules[selectedTab];
       const local = localStorage.getItem(`whatsappSettings_${mod}`);
       if (local) {
         try {
           const parsed = JSON.parse(local);
-          setWaForm({ apiKey: parsed.apiKey || '', sender: parsed.sender || '' });
+          setWaForm(prev => ({ 
+            apiKey: prev.apiKey || parsed.apiKey || '', 
+            sender: parsed.sender || '' 
+          }));
         } catch {
-          setWaForm({ apiKey: '', sender: '' });
+          // Keep existing apiKey if available
         }
-      } else {
-        setWaForm({ apiKey: '', sender: '' });
       }
     }
   }, [modules, selectedTab]);
@@ -150,12 +185,43 @@ export default function ProfilePage() {
     setWaForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleWaSave = () => {
-    if (modules && modules[selectedTab]) {
-      const mod = modules[selectedTab];
-      localStorage.setItem(`whatsappSettings_${mod}`,
-        JSON.stringify({ apiKey: waForm.apiKey, sender: waForm.sender })
+  const handleWaSave = async () => {
+    try {
+      // Get user data and token
+      const userData = localStorage.getItem('user');
+      const token = localStorage.getItem("admin_jwt_token");
+      
+      if (!userData || !token) {
+        throw new Error('User data or token not found');
+      }
+
+      const user = JSON.parse(userData);
+      const companyUuid = user.companyuuid;
+
+      const response = await axios.post(
+        `/api/protected/whatsapp-api-key?company_uuid=${companyUuid}`,
+        {
+          whatsapp_api_key: waForm.apiKey
+        },
+        {
+          headers: {
+            "x-auth-token": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        }
       );
+
+      if (response.data.status) {
+        showSnackbar('WhatsApp API key saved successfully', 'success');
+      } else {
+        throw new Error(response.data.msg || 'Failed to save WhatsApp API key');
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        showSnackbar(err.message, 'error');
+      } else {
+        showSnackbar('An error occurred while saving WhatsApp API key', 'error');
+      }
     }
   };
 

@@ -14,7 +14,7 @@
 
 # next.js
 
-# /.next/
+/.next/
 
 /.next/server
 /out/

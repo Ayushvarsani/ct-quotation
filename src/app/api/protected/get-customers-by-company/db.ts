@@ -2,7 +2,7 @@ import { pool } from "../../lib/db";
 
 export const getCustomersByCompany = async (params: { customer_uuid: string }) => {
   const query = `
-    SELECT c.*, ci.company_message_number , ci.company_name
+    SELECT c.*, ci.company_message_number , ci.company_name, ci.end_date
     FROM customers c
     LEFT JOIN company_info ci ON c.company_uuid = ci.company_uuid
     WHERE c.customer_uuid = $1 

@@ -120,9 +120,9 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
           product_size: mappedData.product_size || "",
         })
       }
-    } catch (error) {
+    } catch (error:any) {
       console.error("Error fetching product data:", error)
-      showSnackbar("Failed to fetch product data", "error", 4000)
+      showSnackbar(error.response.data.msg, "error", 4000)
     } finally {
       setLoading(false)
     }
@@ -167,10 +167,10 @@ export default function DynamicProductForm({ productId, isViewMode = false }: Dy
           ...prev,
           [dialogField]: dialogValue.trim(),
         }));
+        setDialogOpen(false);
+        setIsEditDialog(false);
+        setEditOptionUuid(null);
       }
-      setDialogOpen(false);
-      setIsEditDialog(false);
-      setEditOptionUuid(null);
     }
   };
 

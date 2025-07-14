@@ -218,7 +218,7 @@ export default function UserList() {
                               </IconButton>
                             </Link>
                           </Tooltip>
-                          {user.customerRole !== 1 && (
+                          {idx !== 0 && (
                           <Tooltip title="Delete" arrow>
                             <span>
                               <IconButton size="small" color="error" onClick={() => handleDeleteClick(user)}>
@@ -260,26 +260,26 @@ export default function UserList() {
                       <div>
                         <span className="font-medium">Role:</span> 
                         <Chip 
-                          label={user.customerRole === 1 ? "ADMIN" : user.customerRole === 2 ? "STAFF" : user.customerRole} 
-                          size="small" 
-                          // color={user.customerRole === 3 ? "primary" : user.customerRole === 2 ? "secondary" : "default"}
-                          variant="outlined"
-                          className="ml-2"
-                          sx={{
-                          color:'red'
-                          }}
+                        label={user.customerRole === 1 ? "ADMIN" : user.customerRole === 2 ? "STAFF" : user.customerRole} 
+                        size="small" 
+                        color={user.customerRole === 1 ? "primary" : user.customerRole === 2 ? "secondary" : "default"}
+                        variant="outlined"
+                        className="ml-2"
+                        sx={{
+                          color: 'white',
+                          backgroundColor: '#4f46e5', // Tailwind bg-indigo-500
+                        }}
                         />
                       </div>
                       <div>
                         <span className="font-medium">Status:</span> 
                         <Chip 
-                          label={user.status} 
-                          size="small" 
-                          variant="outlined"
-                          className="ml-2"
-                          sx={getStatusChipStyles(user.status).sx}
-                          icon={<span style={{ width: 8, height: 8, borderRadius: '50%', display: 'inline-block', background: getStatusChipStyles(user.status).iconColor }} />}
-                        />
+                        label={user.status} 
+                        size="small" 
+                        variant="outlined"
+                        className="ml-2"
+                        sx={getStatusChipStyles(user.status).sx} 
+                      />
                       </div>
                     </div>
                   </div>
@@ -292,7 +292,7 @@ export default function UserList() {
                     <EditIcon className="w-4 h-4" />
                     Edit
                   </Link>
-                   {user.customerRole !== 1 && (
+                   {paginatedUsers.indexOf(user) !== 0 && (
                   <button
                     onClick={() => handleDeleteClick(user)}
                     className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-colors"

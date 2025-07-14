@@ -24,7 +24,7 @@ import {
   useMediaQuery,
   IconButton,
 } from "@mui/material"
-import { Visibility, Share } from "@mui/icons-material"
+import { Visibility} from "@mui/icons-material"
 import axios from "axios"
 import type {
   Product,
@@ -83,7 +83,7 @@ const getProductValue = (
   }
 }
 
-const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview, onShare }) => {
+const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview}) => {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"))
   const [isClient, setIsClient] = useState(false)
@@ -190,10 +190,10 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview, 
         ? [{ key: "sqFt", label: productFields.product_sq_ft_box, visible: true }]
         : []),
       ...(productFields.product_weight ? [{ key: "weight", label: productFields.product_weight, visible: true }] : []),
-      ...(gradeFields.com_grade ? [{ key: "com", label: "Com", visible: true }] : []),
-      ...(gradeFields.eco_grade ? [{ key: "eco", label: "Eco", visible: true }] : []),
       ...(gradeFields.pre_grade ? [{ key: "premium", label: "Prem.", visible: true }] : []),
       ...(gradeFields.std_grade ? [{ key: "standard", label: "Std", visible: true }] : []),
+      ...(gradeFields.com_grade ? [{ key: "com", label: "Com", visible: true }] : []),
+      ...(gradeFields.eco_grade ? [{ key: "eco", label: "Eco", visible: true }] : []),
     ]
 
     setColumns(dynamicColumns)
@@ -240,30 +240,32 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview, 
     }
   }, [formData, productPricing, productGroups, columns, onPreview])
 
-  const handleShare = useCallback(() => {
-    if (onShare) {
-      onShare(formData, productPricing)
-    } else {
-      alert("Share functionality - This would open share options")
-    }
-  }, [formData, productPricing, onShare])
+  // const handleShare = useCallback(() => {
+  //   if (onShare) {
+  //     onShare(formData, productPricing)
+  //   } else {
+  //     alert("Share functionality - This would open share options")
+  //   }
+  // }, [formData, productPricing, onShare])
 
   const renderMobileProductGroup = useCallback(
     (group: ProductGroup) => (
       <Box>
         {group.products.map((product, idx) => (
           <Paper key={product.id} sx={{ p: 2, mb: 2, boxShadow: 2, borderRadius: 2 }}>
-            {/* Always show size-category at the top if enabled */}
-            {columns.find((col) => col.key === "size" && col.visible) && (
-              <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
-                {product.product_size}
-              </Typography>
-            )}
-            {columns.find((col) => col.key === "category" && col.visible) && (
-              <Typography variant="body1" sx={{ fontWeight: "bold", mb: 1 }}>
-                {product.product_category}
-              </Typography>
-            )}
+            {/* Dynamic headings for size and category if enabled */}
+            <Box sx={{ display: "flex", gap: 12, mb: 1, flexWrap: "wrap" }}>
+              {columns.find((col) => col.key === "size" && col.visible) && (
+                <Typography variant="body1" >
+                  <strong>{columns.find((col) => col.key === "size")?.label}:</strong> {product.product_size}
+                </Typography>
+              )}
+              {columns.find((col) => col.key === "category" && col.visible) && (
+                <Typography variant="body1" >
+                  <strong>{columns.find((col) => col.key === "category")?.label}:</strong> {product.product_category}
+                </Typography>
+              )}
+            </Box>
             <Divider sx={{ mb: 2 }} />
             <Grid container spacing={2} sx={{ mb: 1 }}>
               {columns
@@ -341,10 +343,10 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview, 
                             {getProductValue(product, col.key, col.key === "srNo" ? idx : undefined, productPricing)}
                           </TableCell>
                         )
-                      case "com":
-                      case "eco":
                       case "premium":
                       case "standard":
+                      case "com":
+                      case "eco":
                         return (
                           <TableCell key={col.key}>
                             <TextField

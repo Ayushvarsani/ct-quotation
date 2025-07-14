@@ -4,10 +4,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { FiUser, FiPhone, FiBriefcase, FiArrowLeft } from "react-icons/fi";
+import { FiUser, FiPhone, FiBriefcase, FiArrowLeft, FiHelpCircle } from "react-icons/fi";
 import * as Yup from "yup";
 import axios from "axios";
-
+import { useSnackbar } from "@/app/hooks/useSnackbar";
 interface UserProfile {
   name: string;
   email: string;
@@ -18,16 +18,6 @@ interface UserProfile {
   profileImage?: string;
 }
 
-interface Customer {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  company_uuid: string;
-  created_at: string;
-  // Add other customer fields as needed
-}
-
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile>({
     name: "",
@@ -35,52 +25,34 @@ export default function ProfilePage() {
     mobileNo: "",
     defaultMessageNo: "",
     companyName: "",
-    designation: "",
     profileImage: "",
   });
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const [selectedTab, setSelectedTab] = useState(0);
   const [modules, setModules] = useState<string[] | null>(null);
-  // const [waSettings, setWaSettings] = useState<{ [module: string]: { apiKey: string; sender: string } }>({});
   const [waForm, setWaForm] = useState<{ apiKey: string; sender: string }>({
     apiKey: "",
     sender: "",
   });
-  const [defaultMsgError, setDefaultMsgError] = useState<string | null>(null);
   const [defaultMsgLoading, setDefaultMsgLoading] = useState(false);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [customersLoading, setCustomersLoading] = useState(false);
-  const [customersError, setCustomersError] = useState<string | null>(null);
+  const { showSnackbar } = useSnackbar();
 
-  // Yup schema for Default Message Number
+  
   const defaultMsgSchema = Yup.object().shape({
     defaultMessageNo: Yup.string()
       .required("Default Message Number is required")
       .matches(/^\+?\d{10,15}$/, "Enter a valid phone number"),
   });
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    // if (userData) {
-      const parsedData = JSON.parse(userData);
-      fetchCustomersByCompany(parsedData.customeruuid);
-    // }
-  }, []);
 
-  // Function to fetch customers by company
   const fetchCustomersByCompany = async (customerUuid: string) => {
-    setCustomersLoading(true);
-    setCustomersError(null);
     const token = localStorage.getItem("admin_jwt_token");
 
     try {
       const userData = localStorage.getItem("user");
       if (!userData) {
-        setCustomersError("User data not found");
         return;
       }
-
-      const user = JSON.parse(userData);
       const response = await axios.get(
         `/api/protected/get-customers-by-company?customer_uuid=${customerUuid}`,
         {
@@ -90,41 +62,32 @@ export default function ProfilePage() {
           },
         }
       );
-      console.log(response);
-
-      // const result = await response.json();
-
-      // if (result.status) {
-      //   setCustomers(result.data || []);
-      // } else {
-      //   setCustomersError(result.msg || 'Failed to fetch customers');
-      //   setCustomers([]);
-      // }
-    } catch (error) {
-      console.error("Error fetching customers:", error);
-      setCustomersError("An error occurred while fetching customers");
-      setCustomers([]);
-    } finally {
-      setCustomersLoading(false);
-    }
-  };
+      if (response.data && response.data.data) {
+          const d = response.data.data;
+          setProfile({
+            name: d.customer_name || '',
+            email: d.customer_email || '',
+            mobileNo: d.customer_mobile || '',
+            defaultMessageNo: d.company_message_number || '',
+            companyName: d.company_name || '',
+            profileImage: '', 
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
   useEffect(() => {
-    // Get user data from localStorage
     const userData = localStorage.getItem('user');
     if (userData) {
       const parsedData = JSON.parse(userData);
-      setProfile({
-        name: parsedData.name || '',
-        email: parsedData.email || '',
-        mobileNo: parsedData.mobileNo || '',
-        defaultMessageNo: parsedData.defaultMessageNo || '',
-        companyName: parsedData.companyName || '',
-        designation: parsedData.designation || '',
-        profileImage: parsedData.profileImage || ''
-      });
+      if (parsedData.customeruuid) {
+        fetchCustomersByCompany(parsedData.customeruuid);
+      }
     }
-    setIsLoading(false);
 
     // Get module(s) from localStorage
     const updateModules = () => {
@@ -195,28 +158,54 @@ export default function ProfilePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setDefaultMsgError(null);
     setDefaultMsgLoading(true);
+    
     try {
       await defaultMsgSchema.validate({ defaultMessageNo: profile.defaultMessageNo });
-      // Call mock update API
-      await fetch('/api/mock-update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ defaultMessageNo: profile.defaultMessageNo }),
-      });
-      // Update localStorage
+      
+      // Get user data and token
       const userData = localStorage.getItem('user');
-      if (userData) {
-        const parsedData = JSON.parse(userData);
-        const updatedData = { ...parsedData, defaultMessageNo: profile.defaultMessageNo };
-        localStorage.setItem('user', JSON.stringify(updatedData));
+      const token = localStorage.getItem("admin_jwt_token");
+      
+      if (!userData || !token) {
+        throw new Error('User data or token not found');
+      }
+
+      const user = JSON.parse(userData);
+      const companyUuid = user.companyuuid;
+      const response = await axios.put(
+        `/api/protected/update-company-message-number?company_uuid=${companyUuid}`,
+        {
+          company_message_number: profile.defaultMessageNo
+        },
+        {
+          headers: {
+            "x-auth-token": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
+
+      if (response.data.status) {
+        showSnackbar(response.data.msg, 'success');
+        const userData = localStorage.getItem('user');
+        if (userData) {
+          const parsedData = JSON.parse(userData);
+          if (parsedData.customeruuid) {
+            fetchCustomersByCompany(parsedData.customeruuid);
+          }
+        }
+      } else {
+        throw new Error(response.data.msg || 'Failed to update company message number');
       }
     } catch (err: unknown) {
       if (err instanceof Yup.ValidationError) {
-        setDefaultMsgError(err.message);
+        showSnackbar(err.message, 'error');
+      } else if (err instanceof Error) {
+        showSnackbar(err.message, 'error');
       } else {
-        setDefaultMsgError('An error occurred.');
+        const errorMessage = 'An error occurred while updating the company message number.';
+        showSnackbar(errorMessage, 'error');
       }
     } finally {
       setDefaultMsgLoading(false);
@@ -276,81 +265,101 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-
-                
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                      <FiBriefcase className="h-5 w-5 text-indigo-600 mr-2" />
-                      Company Name
-                    </label>
-                    <div className="w-full bg-white rounded-lg border-gray-300 px-3 py-2 text-gray-900">
-                      {profile.companyName || 'Company Name'}
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                      <FiPhone className="h-5 w-5 text-indigo-600 mr-2" />
-                      Mobile Number
-                    </label>
-                    <div className="w-full bg-white rounded-lg border-gray-300 px-3 py-2 text-gray-900">
-                      {profile.mobileNo || 'Mobile Number'}
-                    </div>
-                  </div>
-               
+            {/* Read-only Profile Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              <div className="bg-gray-50 rounded-xl p-6">
+                <label className="flex items-center text-sm font-medium text-gray-700 mb-3">
+                  <FiBriefcase className="h-5 w-5 text-indigo-600 mr-2" />
+                  Company Name
+                </label>
+                <div className="w-full bg-white rounded-lg border border-gray-200 px-4 py-3 text-gray-900 font-medium">
+                  {profile.companyName || 'Not provided'}
+                </div>
               </div>
 
-              <div className="bg-gray-50 rounded-xl p-4 max-w-md mx-auto">
-                <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+              <div className="bg-gray-50 rounded-xl p-6">
+                <label className="flex items-center text-sm font-medium text-gray-700 mb-3">
+                  <FiPhone className="h-5 w-5 text-indigo-600 mr-2" />
+                  Mobile Number
+                </label>
+                <div className="w-full bg-white rounded-lg border border-gray-200 px-4 py-3 text-gray-900 font-medium">
+                  {profile.mobileNo || 'Not provided'}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200">
+              <div className="flex items-center justify-between mb-3">
+                <label className="flex items-center text-sm font-medium text-gray-700">
                   <FiPhone className="h-5 w-5 text-indigo-600 mr-2" />
                   Default Message Number
                 </label>
-                <input
-                  type="tel"
-                  value={profile.defaultMessageNo}
-                  onChange={(e) => setProfile({ ...profile, defaultMessageNo: e.target.value })}
-                  className="w-full bg-white rounded-lg border-gray-300 focus:border-indigo-500 focus:ring-indigo-500"
-                />
-                {defaultMsgError && (
-                  <div className="text-red-600 text-sm mt-1">{defaultMsgError}</div>
-                )}
+                <div className="relative group">
+                  <FiHelpCircle className="h-4 w-4 text-gray-400 cursor-help" />
+                  <div className="absolute bottom-full right-0 mb-2 w-96 p-3 bg-gray-700 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                    <div className="relative">
+                      <p>This number will be used as the sender number when sending WhatsApp messages with PDF quotations.</p>
+                      <div className="absolute top-full right-2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <input
+                    type="tel"
+                    value={profile.defaultMessageNo}
+                    onChange={(e) => setProfile({ ...profile, defaultMessageNo: e.target.value })}
+                    className="w-full bg-white rounded-lg border border-gray-300 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 px-4 py-3 text-gray-900 transition-colors"
+                    placeholder="1234567890"
+                  />
+                </div>
 
-              <motion.div
-                // initial={{ opacity: 0, y: 10 }}
-                // animate={{ opacity: 1, y: 0 }}
-                className="pt-6 max-w-md mx-auto"
-              >
-                <button
-                  type="submit"
-                  className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 px-4 rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg hover:shadow-xl"
-                  disabled={defaultMsgLoading}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="pt-2"
                 >
-                  {defaultMsgLoading ? 'Saving...' : 'Save Changes'}
-                </button>
-              </motion.div>
-            </form>
+                  <button
+                    type="submit"
+                    className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 px-6 rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={defaultMsgLoading}
+                  >
+                    {defaultMsgLoading ? (
+                      <span className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Saving...
+                      </span>
+                    ) : (
+                      'Save Company Message Number'
+                    )}
+                  </button>
+                </motion.div>
+              </form>
+            </div>
 
             {/* Dynamic Tabs Section */}
             {modules === null ? null : (
               <div className="mt-10">
                 <div className="flex border-b border-gray-200">
-                  {modules.map((mod, idx) => (
-                    <button
-                      key={mod + idx}
-                      className={`px-4 py-2 -mb-px font-medium border-b-2 transition-colors duration-200 focus:outline-none ${
-                        selectedTab === idx
-                          ? 'border-indigo-600 text-indigo-600'
-                          : 'border-transparent text-gray-500 hover:text-indigo-600'
-                      }`}
-                      onClick={() => setSelectedTab(idx)}
-                    >
-                      {mod}
-                    </button>
-                  ))}
+                  {modules.map((mod, idx) => {                  
+                    const displayName = mod.includes('_module') ? mod.split('_module')[0] : mod;
+                    const formattedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+                    
+                    return (
+                      <button
+                        key={mod + idx}
+                        className={`px-4 py-2 -mb-px font-medium border-b-2 transition-colors duration-200 focus:outline-none ${
+                          selectedTab === idx
+                            ? 'border-indigo-600 text-indigo-600'
+                            : 'border-transparent text-gray-500 hover:text-indigo-600'
+                        }`}
+                        onClick={() => setSelectedTab(idx)}
+                      >
+                        {formattedName}
+                      </button>
+                    );
+                  })}
                 </div>
                 <div className="p-6 bg-white rounded-b-xl shadow-md">
                   <h3 className="text-lg font-semibold mb-4">WhatsApp API Settings</h3>

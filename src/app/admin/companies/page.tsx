@@ -270,14 +270,14 @@ export default function CompanyList() {
                   </Link> */}
                   <Link
                     href={`/admin/companies/${company.company_uuid}/edit`}
-                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
+                     className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 transition-colors"
                   >
                     <EditIcon className="w-4 h-4" />
                     Edit
                   </Link>
                   <button
                     onClick={() => handleDeleteClick(company)}
-                    className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
+                     className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-colors"
                   >
                     <DeleteIcon className="w-4 h-4" />
                     Delete

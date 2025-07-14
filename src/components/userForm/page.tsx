@@ -254,13 +254,17 @@ const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
     const payload: any = {
       customer_name: formData.name,
       customer_email: formData.email,
-      customer_mobile: formData.mobileNumber,
       customer_role: formData.userRole, // Use selected role
       module: modulesArr,
       quotation_module: modulesArr.includes('quotation_module'),
       business_card_module: modulesArr.includes('business_card_module'),
       status: formData.status,
     };
+    
+    // Only include mobile number if it's provided
+    if (formData.mobileNumber && formData.mobileNumber.trim() !== '') {
+      payload.customer_mobile = formData.mobileNumber;
+    }
     if (mode === 'create' || formData.password) {
       payload.customer_password = formData.password;
     }
@@ -365,7 +369,7 @@ const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700">Mobile Number *</label>
+                  <label htmlFor="mobileNumber" className="block text-sm font-medium text-gray-700">Mobile Number (Optional)</label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                     <input
@@ -374,7 +378,7 @@ const UserForm: React.FC<UserFormProps> = ({ userId, mode = 'create' }) => {
                       value={formData.mobileNumber}
                       onChange={e => handleInputChange('mobileNumber', e.target.value.replace(/\D/g, ''))}
                       className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${errors.mobileNumber ? 'border-red-300 bg-red-50' : 'border-gray-300 hover:border-gray-400'}`}
-                      placeholder="1234567890"
+                      placeholder="1234567890 (Optional)"
                       maxLength={10}
                     />
                   </div>

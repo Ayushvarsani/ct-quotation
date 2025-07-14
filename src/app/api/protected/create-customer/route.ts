@@ -45,13 +45,32 @@ export async function POST(req: Request) {
       const dbError = error as DatabaseError;
 
       if (dbError.code === "23505") {
-        return NextResponse.json(
-          {
-            status: false,
-            msg: "Email or mobile already linked with another user",
-          },
-          { status: 400 }
-        );
+        // Check if it's email or mobile constraint violation
+        if (dbError.constraint && dbError.constraint.includes('email')) {
+          return NextResponse.json(
+            {
+              status: false,
+              msg: "Email already linked with another user",
+            },
+            { status: 400 }
+          );
+        } else if (dbError.constraint && dbError.constraint.includes('mobile')) {
+          return NextResponse.json(
+            {
+              status: false,
+              msg: "Mobile number already linked with another user",
+            },
+            { status: 400 }
+          );
+        } else {
+          return NextResponse.json(
+            {
+              status: false,
+              msg: "Email or mobile already linked with another user",
+            },
+            { status: 400 }
+          );
+        }
       }
       return NextResponse.json(
         { status: false, msg: "Internal Server Error", error },
@@ -60,6 +79,7 @@ export async function POST(req: Request) {
     }
   }
 }
+
 export async function PUT(req: Request) {
   try {
     const userUuid = req.headers.get("x-user-uuid");
@@ -97,13 +117,32 @@ export async function PUT(req: Request) {
       const dbError = error as DatabaseError;
 
       if (dbError.code === "23505") {
-        return NextResponse.json(
-          {
-            status: false,
-            msg: "Email or mobile already linked with another user",
-          },
-          { status: 400 }
-        );
+        // Check if it's email or mobile constraint violation
+        if (dbError.constraint && dbError.constraint.includes('email')) {
+          return NextResponse.json(
+            {
+              status: false,
+              msg: "Email already linked with another user",
+            },
+            { status: 400 }
+          );
+        } else if (dbError.constraint && dbError.constraint.includes('mobile')) {
+          return NextResponse.json(
+            {
+              status: false,
+              msg: "Mobile number already linked with another user",
+            },
+            { status: 400 }
+          );
+        } else {
+          return NextResponse.json(
+            {
+              status: false,
+              msg: "Email or mobile already linked with another user",
+            },
+            { status: 400 }
+          );
+        }
       }
       return NextResponse.json(
         { status: false, msg: "Internal Server Error", error },
@@ -139,13 +178,32 @@ export async function GET(req: Request) {
       const dbError = error as DatabaseError;
 
       if (dbError.code === "23505") {
-        return NextResponse.json(
-          {
-            status: false,
-            msg: "Email or mobile already linked with another user",
-          },
-          { status: 400 }
-        );
+        // Check if it's email or mobile constraint violation
+        if (dbError.constraint && dbError.constraint.includes('email')) {
+          return NextResponse.json(
+            {
+              status: false,
+              msg: "Email already linked with another user",
+            },
+            { status: 400 }
+          );
+        } else if (dbError.constraint && dbError.constraint.includes('mobile')) {
+          return NextResponse.json(
+            {
+              status: false,
+              msg: "Mobile number already linked with another user",
+            },
+            { status: 400 }
+          );
+        } else {
+          return NextResponse.json(
+            {
+              status: false,
+              msg: "Email or mobile already linked with another user",
+            },
+            { status: 400 }
+          );
+        }
       }
       return NextResponse.json(
         { status: false, msg: "Internal Server Error", error },

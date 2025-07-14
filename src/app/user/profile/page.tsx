@@ -9,6 +9,7 @@ import * as Yup from "yup";
 import axios from "axios";
 import { useSnackbar } from "@/app/hooks/useSnackbar";
 interface UserProfile {
+  enddate: string;
   name: string;
   email: string;
   mobileNo: string;
@@ -26,6 +27,7 @@ export default function ProfilePage() {
     defaultMessageNo: "",
     companyName: "",
     profileImage: "",
+    enddate:"",
   });
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -70,6 +72,7 @@ export default function ProfilePage() {
             mobileNo: d.customer_mobile || '',
             defaultMessageNo: d.company_message_number || '',
             companyName: d.company_name || '',
+            enddate:d.end_date ,
             profileImage: '', 
           });
         }
@@ -258,11 +261,21 @@ export default function ProfilePage() {
 
           {/* Content Section */}
           <div className="pt-20 pb-8 px-8">
+            <div className="flex justify-between ">
             <div className="flex justify-between items-start mb-8">
-              <div>
+              <div >
                 <h2 className="text-3xl font-bold text-gray-900">{profile.name || 'Your Name'}</h2>
                 <p className="text-gray-600 mt-1">{profile.email || 'Email Address'}</p>
               </div>
+              
+            </div>
+            <div className="text-right">
+          <span className="text-gray-500 text-sm">Your plan ends on</span>
+          <br />
+          <span className="font-semibold text-indigo-600 text-lg">
+            {profile.enddate.split("T")[0]}
+          </span>
+</div>
             </div>
 
             {/* Read-only Profile Information */}

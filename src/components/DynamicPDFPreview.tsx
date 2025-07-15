@@ -469,7 +469,7 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
         mobile: formData.mobile,
         message: whatsappMessage,
         pdf: s3Url,
-        apikey: companyData.whatsapp_api_ket,
+        apikey: companyData.whatsapp_api_key,
         sendername: "ABCDEF"
       } ,{
         headers: {

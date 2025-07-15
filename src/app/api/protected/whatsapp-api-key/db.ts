@@ -30,7 +30,7 @@ export const getWhatsAppApiKey = async (company_uuid: string) => {
       code: 200,
       status: true,
       data: {
-        whatsapp_api_key: result.rows[0].whatsapp_api_ket || null,
+        whatsapp_api_key: result.rows[0].whatsapp_api_key || null,
       },
     };
   } catch (error) {
@@ -47,9 +47,9 @@ export const getWhatsAppApiKey = async (company_uuid: string) => {
 export const updateWhatsAppApiKey = async (params: WhatsAppApiKeyParams) => {
   const query = `
     UPDATE company_info 
-    SET whatsapp_api_ket = $1
+    SET whatsapp_api_key = $1
     WHERE company_uuid = $2
-    RETURNING company_uuid, whatsapp_api_ket, company_name
+    RETURNING company_uuid, whatsapp_api_key, company_name
   `;
 
   const values = [params.whatsapp_api_key, params.company_uuid];
@@ -71,7 +71,7 @@ export const updateWhatsAppApiKey = async (params: WhatsAppApiKeyParams) => {
       status: true,
       data: {
         company_uuid: result.rows[0].company_uuid,
-        whatsapp_api_key: result.rows[0].whatsapp_api_ket,
+        whatsapp_api_key: result.rows[0].whatsapp_api_key,
         company_name: result.rows[0].company_name,
       },
     };

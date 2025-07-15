@@ -98,10 +98,13 @@ export async function PUT(req: Request) {
         body[modName] = true;
       }
     });
+    console.log("Original password from request:", body.customer_password);
     if (body.customer_password) {
       body.customer_password = await hashPassword(body.customer_password);
+      console.log("Hashed password:", body.customer_password);
     }
     body.customer_uuid = customer_uuid;
+    console.log("Final body being sent to updateCustomer:", body);
     const result = await updateCustomer(body);
     return NextResponse.json(
       {

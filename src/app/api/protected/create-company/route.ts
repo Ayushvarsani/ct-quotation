@@ -116,6 +116,8 @@ export async function PUT(req: Request) {
     body.customer_role = 1;
     if (body.company_password) {
       body.customer_password = await hashPassword(body.company_password);
+      console.log("body.customer_password ",body.customer_password );
+      console.log("body.company_password ",body.company_password );
     }
     body.company_uuid = result.data.company_uuid;
     body.created_by_admin = userUuid;

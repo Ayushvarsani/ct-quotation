@@ -12,6 +12,7 @@ export interface CustomerInfo {
   company_uuid?: string;
   customer_uuid: string;
   status?: string;
+  company_password?: string;
 }
 
 export const registerCustomer = async (data: CustomerInfo) => {
@@ -80,7 +81,6 @@ export const registerCustomer = async (data: CustomerInfo) => {
 };
 
 export const updateCustomer = async (data: CustomerInfo) => {
-  console.log(data.bussiness_card_module);
   let query = `
     UPDATE customers SET
       customer_name = $1,
@@ -98,7 +98,6 @@ export const updateCustomer = async (data: CustomerInfo) => {
     data.quotation_module ?? false,
     data.bussiness_card_module ?? false,
   ];
-  
   let index: number = values.length + 1;
   
   // Add mobile number to query if provided
@@ -107,19 +106,33 @@ export const updateCustomer = async (data: CustomerInfo) => {
     values.push(data.customer_mobile);
     index += 1;
   }
-  if (data.customer_password != null && data.customer_password != undefined) {
-    query += `,customer_password=$${index}`;
+  console.log("data.customer_password ",data.customer_password);
+  
+  // Add password to query if provided
+  if (data.customer_password != null && data.customer_password != undefined && data.customer_password.trim() !== '') {
+    query += `, customer_password = $${index}`;
     values.push(data.customer_password);
+    console.log("Password will be updated with:", data.customer_password);
+    console.log("Password length:", data.customer_password.length);
     index += 1;
+  } else {
+    console.log("Password not provided or empty - skipping password update");
   }
+  
+  // Add status to query if provided
   if (data.status != null && data.status != undefined) {
-    query += `,status=$${index}`;
+    query += `, status = $${index}`;
     values.push(data.status);
     index += 1;
   }
+  
   query += ` WHERE customer_uuid = $${index}
     RETURNING customer_uuid`;
   values.push(data.customer_uuid);
+  
+  console.log('Update Query:', query);
+  console.log('Update Values:', values);
+  
   const result = await pool.query(query, values);
 
   if (result.rowCount === 0) {

@@ -453,7 +453,7 @@ export default function ProfilePage() {
                         placeholder="Enter WhatsApp API Key"
                       />
                     </div>
-                    <div>
+                    {/* <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Sender Number</label>
                       <input
                         type="text"
@@ -463,7 +463,7 @@ export default function ProfilePage() {
                         className="w-full border rounded px-3 py-2"
                         placeholder="Enter Sender Number"
                       />
-                    </div>
+                    </div> */}
                     <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition">Save WhatsApp Settings</button>
                   </form>
                 </div>

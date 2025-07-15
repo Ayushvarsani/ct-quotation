@@ -36,6 +36,7 @@ import type {
   GradeFields,
   ProductFields,
 } from "@/components/types/quotation"
+import * as yup from "yup"
 
 interface DynamicQuotationFormProps {
   onPreview: (
@@ -103,11 +104,30 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
     tax: "",
     remark: "",
   })
+  const [errors, setErrors] = useState<{ [key: string]: string }>({})
 
   // Set client-side rendering flag
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  // Load formData and productPricing from localStorage on mount
+  useEffect(() => {
+    if (isClient) {
+      const savedFormData = localStorage.getItem("quotation_form_data")
+      const savedProductPricing = localStorage.getItem("quotation_product_pricing")
+      if (savedFormData) setFormData(JSON.parse(savedFormData))
+      if (savedProductPricing) setProductPricing(JSON.parse(savedProductPricing))
+    }
+  }, [isClient])
+
+  // Save formData and productPricing to localStorage on change
+  useEffect(() => {
+    if (isClient) {
+      localStorage.setItem("quotation_form_data", JSON.stringify(formData))
+      localStorage.setItem("quotation_product_pricing", JSON.stringify(productPricing))
+    }
+  }, [formData, productPricing, isClient])
 
   // Fetch products from API
   useEffect(() => {
@@ -222,12 +242,40 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
     [],
   )
 
-  const handlePreview = useCallback(async () => {
-    if (!formData.Name.trim() || !formData.mobile.trim()) {
-      alert("Please fill in customer name and mobile number")
-      return
-    }
+  const validationSchema = yup.object().shape({
+    Name: yup.string().required("Name is required"),
+    mobile: yup
+      .string()
+      .required("Mobile number is required")
+      .matches(/^\d{10}$/, "Please enter a valid 10-digit mobile number"),
+    refParty: yup.string(),
+    seName: yup.string(),
+    paymentWithDays: yup.string(),
+    tax: yup.string(),
+    remark: yup.string(),
+  })
 
+  const handlePreview = useCallback(async () => {
+    try {
+      await validationSchema.validate(formData, { abortEarly: false })
+      setErrors({})
+    } catch (err: any) {
+      if (err.inner) {
+        const newErrors: { [key: string]: string } = {}
+        err.inner.forEach((validationError: any) => {
+          newErrors[validationError.path] = validationError.message
+        })
+        setErrors(newErrors)
+        if (newErrors.mobile) {
+          const mobileInput = document.getElementById("quotation-mobileNumber")
+          if (mobileInput) mobileInput.focus()
+        } else if (newErrors.Name) {
+          const nameInput = document.getElementById("quotation-Name")
+          if (nameInput) nameInput.focus()
+        }
+      return
+      }
+    }
     setIsGenerating(true)
     try {
       await new Promise((resolve) => setTimeout(resolve, 500))
@@ -430,6 +478,7 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
                   Name :
                 </Typography>
                 <TextField
+                  id="quotation-Name"
                   fullWidth
                   required
                   label=""
@@ -438,6 +487,8 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
                   onChange={handleInputChange("Name")}
                   variant="outlined"
                   size="small"
+                  error={!!errors.Name}
+                  helperText={errors.Name}
                 />
               </Box>
             </Grid>
@@ -460,6 +511,7 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
                   Mobile :
                 </Typography>
                 <TextField
+                  id="quotation-mobileNumber"
                   fullWidth
                   required
                   label=""
@@ -468,6 +520,8 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
                   onChange={handleInputChange("mobile")}
                   variant="outlined"
                   size="small"
+                  error={!!errors.mobile}
+                  helperText={errors.mobile}
                 />
               </Box>
             </Grid>

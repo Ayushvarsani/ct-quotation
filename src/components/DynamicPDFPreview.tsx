@@ -483,11 +483,12 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
       if (whatsappResponse.data && whatsappResponse.data.success) {
         showSnackbar("PDF uploaded and WhatsApp message sent successfully!", "success")
         setSendStatus("success")
+        // Clear form data and product pricing from localStorage after successful send
+        localStorage.removeItem("quotation_form_data")
+        localStorage.removeItem("quotation_product_pricing")
       } else {
         throw new Error(whatsappResponse.data?.error || "Failed to send WhatsApp message")
       }
-
-      setTimeout(() => setSendStatus("idle"), 3000)
     } catch (error) {
       console.error("Error uploading PDF or sending WhatsApp:", error)
       setSendStatus("error")
@@ -602,7 +603,7 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
               >
                 PRICE QUOTATION
               </Typography>
-              {companyData && (
+              {/* {companyData && (
                 <Typography
                   variant="body2"
                   sx={{
@@ -613,7 +614,7 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
                 >
                   {companyData.company_name}
                 </Typography>
-              )}
+              )} */}
                   <Typography
                     variant="body2"
                     color="text.secondary"

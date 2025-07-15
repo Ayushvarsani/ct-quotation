@@ -110,6 +110,9 @@ export default function UserHeader({ username }: HeaderProps) {
     localStorage.removeItem("token")
     localStorage.removeItem("quotation_product_fields")
     localStorage.removeItem("quotation_grade_fields")
+    localStorage.removeItem("quotation_product_pricing")
+    localStorage.removeItem("quotation_form_data")
+
     router.push("/")
   }
   
@@ -253,13 +256,17 @@ export default function UserHeader({ username }: HeaderProps) {
 
                       {/* Menu Items */}
                       <div className="py-2">
-                      <button
+                      
+                      {userRole === 1 && (
+                        <button
                           onClick={handleProfileClick}
                           className="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
                         >
                           <PersonOutlined className="h-4 w-4 mr-3 text-gray-400" />
                           My Profile
                         </button>
+                      )}
+                        
                         <button
                           onClick={handleLogout}
                           className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"

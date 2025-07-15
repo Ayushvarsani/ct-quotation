@@ -82,12 +82,12 @@ export default function LoginPage() {
           const allFields = {
             product_name: res.data.data.product_name,
             product_size: res.data.data.product_size,
-            product_category: res.data.data.product_category,
             product_series: res.data.data.product_series,
+            product_category: res.data.data.product_category,
             product_finish: res.data.data.product_finish,
             product_pieces_per_box: res.data.data.product_pieces_per_box,
-            product_weight: res.data.data.product_weight,
             product_sq_ft_box: res.data.data.product_sq_ft_box,
+            product_weight: res.data.data.product_weight,
           };
           const productFields = Object.fromEntries(
             Object.entries(allFields).filter(([_, v]) => v != null && v !== "")

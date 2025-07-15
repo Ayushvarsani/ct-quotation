@@ -29,6 +29,7 @@ import { ArrowBack, Download, WhatsApp, CheckCircle } from "@mui/icons-material"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import { useSnackbar } from "@/app/hooks/useSnackbar"
+import axios from "axios"
 
 interface FormData {
   Name?: string
@@ -140,7 +141,7 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
   const [sendStatus, setSendStatus] = useState<"idle" | "success" | "error">("idle")
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const { showSnackbar } = useSnackbar()
-
+  const [pdfURL, setPDFURL] = useState<string | null>(null)
   const pricingColumnKeys = ["com", "eco", "premium", "standard"];
   const srNoColumn = columns.find(col => col.key === "srNo");
   const pricingColumns = columns.filter(col => pricingColumnKeys.includes(col.key));
@@ -387,6 +388,43 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
     setSendStatus("idle")
 
     try {
+      const pdfBlob = generatePDF()
+      
+      // Convert blob to base64
+      const arrayBuffer = await pdfBlob.arrayBuffer()
+      const uint8Array = new Uint8Array(arrayBuffer)
+      const base64 = Buffer.from(uint8Array).toString('base64')
+      
+      // Generate filename
+      const fileName = `Quotation_${formData.Name || "Customer"}_${new Date().toLocaleDateString()}.pdf`
+      
+      // Get authentication token
+      const token = localStorage.getItem("token") || localStorage.getItem("admin_jwt_token")
+      if (!token) {
+        throw new Error("Authentication token not found")
+      }
+
+      // Upload PDF to S3 with PDF value as object
+      const uploadResponse = await axios.post("/api/protected/upload-pdf", {
+        value: {
+          pdfBase64: base64,
+          fileName: fileName,
+        }
+      }, {
+        headers: {
+          "x-auth-token": `Bearer ${token}`,
+        },
+      })
+      setPDFURL(uploadResponse.data.url)
+      console.log("PDF URL:", uploadResponse.data.url)
+      console.log("PDF URL:", pdfURL)
+      if (!uploadResponse.data.success) {
+        throw new Error(uploadResponse.data.error || "Failed to upload PDF to S3")
+      }
+
+      const s3Url = uploadResponse.data.url
+
+      // Now handle WhatsApp sending with the S3 URL
       let success = false
       if (onWhatsAppSend) {
         success = await onWhatsAppSend(formData, productPricing, productGroups, columns)
@@ -394,15 +432,17 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
         // Default simulation
         await new Promise((resolve) => setTimeout(resolve, 2000))
         console.log("Sending WhatsApp message to:", formData.mobile)
-        showSnackbar("PDF generated and sent successfully!", "success")
+        console.log("PDF URL:", s3Url)
+        showSnackbar(`PDF uploaded to S3 successfully! URL: ${s3Url}`, "success")
         success = true
       }
 
       setSendStatus(success ? "success" : "error")
       setTimeout(() => setSendStatus("idle"), 3000)
     } catch (error) {
-      console.error("Error sending WhatsApp:", error)
+      console.error("Error uploading PDF or sending WhatsApp:", error)
       setSendStatus("error")
+      showSnackbar(error instanceof Error ? error.message : "Failed to upload PDF or send WhatsApp", "error")
       setTimeout(() => setSendStatus("idle"), 3000)
     } finally {
       setIsSending(false)
@@ -416,6 +456,7 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
   //   const whatsappUrl = `https://wa.me/${formData.mobile}?text=${message}`
   //   window.open(whatsappUrl, "_blank")
   // }
+  
 
   const userData = localStorage.getItem("user")
   const parsedUser = userData ? JSON.parse(userData) : {}
@@ -810,10 +851,10 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
                 }}
               >
                 {isSending
-                  ? "Generating & Sending PDF..."
+                  ? "Uploading PDF to S3 & Sending..."
                   : sendStatus === "success"
-                    ? "PDF Sent Successfully!"
-                    : "Generate PDF & Send via WhatsApp"}
+                    ? "PDF Uploaded & Sent Successfully!"
+                    : "Upload PDF to S3 & Send via WhatsApp"}
               </Button>
             </Stack>
           </Box>

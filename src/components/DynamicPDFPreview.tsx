@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
-import type React from "react"
-import { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
   Box,
   Card,
@@ -84,12 +83,6 @@ interface DynamicPDFPreviewProps {
   productGroups: ProductGroup[]
   columns: Column[]
   onBack: () => void
-  onWhatsAppSend?: (
-    formData: FormData,
-    productPricing: ProductPricing,
-    productGroups: ProductGroup[],
-    columns: Column[],
-  ) => Promise<boolean>
 }
 
 const getProductValue = (
@@ -134,7 +127,6 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
   productGroups,
   columns,
   onBack,
-  onWhatsAppSend,
 }) => {
   const theme = useTheme()
   const [isSending, setIsSending] = useState(false)
@@ -142,6 +134,7 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const { showSnackbar } = useSnackbar()
   const [pdfURL, setPDFURL] = useState<string | null>(null)
+  const [companyData, setCompanyData] = useState<any>(null) // Company data fetched from get-company-id API
   const pricingColumnKeys = ["com", "eco", "premium", "standard"];
   const srNoColumn = columns.find(col => col.key === "srNo");
   const pricingColumns = columns.filter(col => pricingColumnKeys.includes(col.key));
@@ -153,6 +146,51 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
     ...pricingColumns,
     ...otherColumns,
   ].filter(col => col.visible);
+
+  // Function to get company ID and fetch company data
+  const getCompanyId = async () => {
+    try {
+      const userData = localStorage.getItem("user")
+      if (!userData) {
+        console.error("User data not found in localStorage")
+        return null
+      }
+
+      const parsedUser = JSON.parse(userData)
+      const companyUuid = parsedUser.companyuuid || parsedUser.company_uuid
+      
+      // Get authentication token
+      const token = localStorage.getItem("token")
+      if (!token) {
+        console.error("Authentication token not found")
+        return null
+      }
+
+      // Fetch company data from API
+      const response = await axios.get(`/api/protected/create-company?company_uuid=${companyUuid}`, {
+        headers: {
+          "x-auth-token": `Bearer ${token}`,
+        },
+      })
+
+      if (response.data.status && response.data.data) {
+        setCompanyData(response.data.data)
+        console.log("Company data fetched successfully:", response.data.data)
+        return response.data.data
+      } else {
+        console.error("Failed to fetch company data:", response.data.msg)
+        return null
+      }
+    } catch (error) {
+      console.error("Error fetching company data:", error)
+      return null
+    }
+  }
+
+  // Call getCompanyId when component mounts
+  useEffect(() => {
+    getCompanyId()
+  }, [])
 
   const generatePDF = () => {
     const doc = new jsPDF("p", "mm", "a4")
@@ -424,20 +462,31 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
 
       const s3Url = uploadResponse.data.url
 
-      // Now handle WhatsApp sending with the S3 URL
-      let success = false
-      if (onWhatsAppSend) {
-        success = await onWhatsAppSend(formData, productPricing, productGroups, columns)
+      // Send WhatsApp message via our backend API
+      const whatsappMessage = `Hi ${formData.Name || "Customer"}, please find your quotation PDF here: ${s3Url}`
+      
+      const whatsappResponse = await axios.post("/api/protected/send-whatsapp", {
+        mobile: formData.mobile,
+        message: whatsappMessage,
+        pdf: s3Url,
+        apikey: companyData.whatsapp_api_ket,
+        sendername: "ABCDEF"
+      } ,{
+        headers: {
+          "x-auth-token": `Bearer ${token}`,
+        },
+      })
+
+      console.log("WhatsApp API Response:", whatsappResponse.data)
+
+      // Check if WhatsApp API call was successful
+      if (whatsappResponse.data && whatsappResponse.data.success) {
+        showSnackbar("PDF uploaded and WhatsApp message sent successfully!", "success")
+        setSendStatus("success")
       } else {
-        // Default simulation
-        await new Promise((resolve) => setTimeout(resolve, 2000))
-        console.log("Sending WhatsApp message to:", formData.mobile)
-        console.log("PDF URL:", s3Url)
-        showSnackbar(`PDF uploaded to S3 successfully! URL: ${s3Url}`, "success")
-        success = true
+        throw new Error(whatsappResponse.data?.error || "Failed to send WhatsApp message")
       }
 
-      setSendStatus(success ? "success" : "error")
       setTimeout(() => setSendStatus("idle"), 3000)
     } catch (error) {
       console.error("Error uploading PDF or sending WhatsApp:", error)
@@ -542,17 +591,29 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
                     mb: 1,
                   }}
                 >
-                  <Typography
-                    variant="h4"
-                    sx={{
-                      fontWeight: "bold",
-                      color: "#34495e",
-                      fontFamily: "serif",
-                      fontSize: { xs: "1.25rem", sm: "1.5rem", md: "2rem" },
-                    }}
-                  >
-                    PRICE QUOTATION
-                  </Typography>
+                                <Typography
+                variant="h4"
+                sx={{
+                  fontWeight: "bold",
+                  color: "#34495e",
+                  fontFamily: "serif",
+                  fontSize: { xs: "1.25rem", sm: "1.5rem", md: "2rem" },
+                }}
+              >
+                PRICE QUOTATION
+              </Typography>
+              {companyData && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "#666",
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    mt: 0.5,
+                  }}
+                >
+                  {companyData.company_name}
+                </Typography>
+              )}
                   <Typography
                     variant="body2"
                     color="text.secondary"

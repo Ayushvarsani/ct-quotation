@@ -48,7 +48,7 @@ export default function ProfilePage() {
   });
 
   const fetchCustomersByCompany = async (customerUuid: string) => {
-    const token = localStorage.getItem("admin_jwt_token");
+    const token = localStorage.getItem("token");
 
     try {
       const userData = localStorage.getItem("user");
@@ -58,7 +58,6 @@ export default function ProfilePage() {
       const response = await axios.get(
         `/api/protected/get-customers-by-company?customer_uuid=${customerUuid}`,
         {
-          method: "GET",
           headers: {
             "x-auth-token": `Bearer ${token}`,
           },
@@ -131,7 +130,7 @@ export default function ProfilePage() {
   const loadWhatsAppApiKey = async () => {
     try {
       const userData = localStorage.getItem('user');
-      const token = localStorage.getItem("admin_jwt_token");
+      const token = localStorage.getItem("token");
       
       if (!userData || !token) {
         return;
@@ -189,7 +188,7 @@ export default function ProfilePage() {
     try {
       // Get user data and token
       const userData = localStorage.getItem('user');
-      const token = localStorage.getItem("admin_jwt_token");
+      const token = localStorage.getItem("token");
       
       if (!userData || !token) {
         throw new Error('User data or token not found');
@@ -234,7 +233,7 @@ export default function ProfilePage() {
       
       // Get user data and token
       const userData = localStorage.getItem('user');
-      const token = localStorage.getItem("admin_jwt_token");
+      const token = localStorage.getItem("token");
       
       if (!userData || !token) {
         throw new Error('User data or token not found');

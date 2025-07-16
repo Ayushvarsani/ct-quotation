@@ -8,6 +8,8 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useSnackbar } from "@/app/hooks/useSnackbar";
 import axios from "axios";
+import { useState } from "react";
+import { Visibility, VisibilityOff } from "@mui/icons-material";
 
 const schema = yup
   .object({
@@ -27,6 +29,7 @@ type LoginFormData = yup.InferType<typeof schema>;
 export default function LoginPage() {
   const router = useRouter();
   const { showSnackbar } = useSnackbar();
+  const [showPassword, setShowPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -103,13 +106,27 @@ export default function LoginPage() {
                 >
                   Password
                 </label>
-                <input
-                  {...register("password")}
-                  id="password"
-                  type="password"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200"
-                  placeholder="Enter your password"
-                />
+                <div className="relative">
+                  <input
+                    {...register("password")}
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition duration-200 pr-10"
+                    placeholder="Enter your password"
+                  />
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 focus:outline-none"
+                  >
+                    {showPassword ? (
+                      <VisibilityOff fontSize="small" />
+                    ) : (
+                      <Visibility fontSize="small" />
+                    )}
+                  </button>
+                </div>
                 {errors.password && (
                   <motion.p
                     initial={{ opacity: 0 }}

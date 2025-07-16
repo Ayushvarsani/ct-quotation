@@ -75,19 +75,18 @@ const DynamicQuotationApp: React.FC = () => {
     alert(`Share functionality called for customer: ${formData.Name}`);
   };
 
-  const handleWhatsAppSend = async (
-
-  ): Promise<boolean> => {
-    try {
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      // Simulate success
-      return true;
-    } catch (error) {
-      console.error("Error sending WhatsApp message:", error);
-      return false;
-    }
-  };
+  // const handleWhatsAppSend = async (
+  // ): Promise<boolean> => {
+  //   try {
+  //     // Simulate network delay
+  //     await new Promise((resolve) => setTimeout(resolve, 2000));
+  //     // Simulate success
+  //     return true;
+  //   } catch (error) {
+  //     console.error("Error sending WhatsApp message:", error);
+  //     return false;
+  //   }
+  // };
 
   return (
     <ThemeProvider theme={theme}>
@@ -107,7 +106,7 @@ const DynamicQuotationApp: React.FC = () => {
               productGroups={currentProductGroups}
               columns={currentColumns}
               onBack={handleBackToForm}
-              onWhatsAppSend={handleWhatsAppSend}
+              // onWhatsAppSend={handleWhatsAppSend}
             />
           )}
       </div>

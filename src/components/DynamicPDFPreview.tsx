@@ -83,6 +83,7 @@ interface DynamicPDFPreviewProps {
   productGroups: ProductGroup[]
   columns: Column[]
   onBack: () => void
+  // onWhatsAppSend: () => void
 }
 
 const getProductValue = (
@@ -127,6 +128,7 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
   productGroups,
   columns,
   onBack,
+  // onWhatsAppSend
 }) => {
   const theme = useTheme()
   const [isSending, setIsSending] = useState(false)

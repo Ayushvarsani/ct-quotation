@@ -466,7 +466,7 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
       const s3Url = uploadResponse.data.url
 
       // Send WhatsApp message via our backend API
-      const whatsappMessage = `Hi ${formData.Name || "Customer"}, please find your quotation PDF here: ${s3Url}`
+      const whatsappMessage = `Hi ${formData.Name || "Customer"}, thanks for your interest! Please find your quotation PDF attached. Let us know if you need any help.`
       
       const whatsappResponse = await axios.post("/api/protected/send-whatsapp", {
         mobile: formData.mobile,

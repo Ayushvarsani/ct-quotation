@@ -61,7 +61,7 @@ const getProductValue = (
       return product.product_size || ""
     case "category":
       return product.product_category || ""
-    case "packing":
+    case "pcsperbox":
       return product.product_pieces_per_box?.toString() || ""
     case "sqFt":
       return product.product_sq_ft_box?.toString() || ""
@@ -198,13 +198,14 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
     const dynamicColumns: Column[] = [
       { key: "srNo", label: "Sr. No.", visible: true },
       ...(productFields.product_size ? [{ key: "size", label: productFields.product_size, visible: true }] : []),
+      
+      ...(productFields.product_series ? [{ key: "series", label: productFields.product_series, visible: true }] : []),
       ...(productFields.product_category
         ? [{ key: "category", label: productFields.product_category, visible: true }]
         : []),
-      ...(productFields.product_series ? [{ key: "series", label: productFields.product_series, visible: true }] : []),
       ...(productFields.product_finish ? [{ key: "finish", label: productFields.product_finish, visible: true }] : []),
       ...(productFields.product_pieces_per_box
-        ? [{ key: "packing", label: productFields.product_pieces_per_box, visible: true }]
+        ? [{ key: "pcsperbox", label: productFields.product_pieces_per_box, visible: true }]
         : []),
       ...(productFields.product_sq_ft_box
         ? [{ key: "sqFt", label: productFields.product_sq_ft_box, visible: true }]
@@ -286,31 +287,22 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
     } finally {
       setIsGenerating(false)
     }
-  }, [formData, productPricing, productGroups, columns, onPreview])
-
-  // const handleShare = useCallback(() => {
-  //   if (onShare) {
-  //     onShare(formData, productPricing)
-  //   } else {
-  //     alert("Share functionality - This would open share options")
-  //   }
-  // }, [formData, productPricing, onShare])
+  }, [formData, productPricing, productGroups, columns, onPreview,validationSchema])
 
   const renderMobileProductGroup = useCallback(
     (group: ProductGroup) => (
       <Box>
         {group.products.map((product, idx) => (
           <Paper key={product.id} sx={{ p: 2, mb: 2, boxShadow: 2, borderRadius: 2 }}>
-            {/* Dynamic headings for size and category if enabled */}
-            <Box sx={{ display: "flex", gap: 12, mb: 1, flexWrap: "wrap" }}>
+            <Box sx={{ display: "flex",justifyContent: "space-between", gap: 1, mb: 1, flexWrap: "wrap" }}>
               {columns.find((col) => col.key === "size" && col.visible) && (
                 <Typography variant="body1" >
                   <strong>{columns.find((col) => col.key === "size")?.label}:</strong> {product.product_size}
                 </Typography>
               )}
-              {columns.find((col) => col.key === "category" && col.visible) && (
+              {columns.find((col) => col.key === "series" && col.visible) && (
                 <Typography variant="body1" >
-                  <strong>{columns.find((col) => col.key === "category")?.label}:</strong> {product.product_category}
+                  <strong>{columns.find((col) => col.key === "series")?.label}:</strong> {product.product_series}
                 </Typography>
               )}
             </Box>
@@ -320,7 +312,7 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
                 .filter(
                   (col) =>
                     col.key !== "size" &&
-                    col.key !== "category" &&
+                    col.key !== "series" &&
                     !["premium", "standard", "com", "eco"].includes(col.key) &&
                     col.visible,
                 )
@@ -381,7 +373,7 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
                       case "srNo":
                       case "size":
                       case "category":
-                      case "packing":
+                      case "pcsperbox":
                       case "sqFt":
                       case "weight":
                       case "series":
@@ -714,19 +706,6 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
             {isClient &&
               (isMobile ? (
                 <>
-                  {/* <IconButton
-                    onClick={handleShare}
-                    disabled={isGenerating}
-                    sx={{
-                      border: "1px solid #1976d2",
-                      borderRadius: 2,
-                      p: 2,
-                      "&:hover": { bgcolor: "#f5f5f5" },
-                    }}
-                  >
-                    <Share sx={{ mr: 1 }} />
-                    <Typography variant="body2">Share</Typography>
-                  </IconButton> */}
                   <IconButton
                     onClick={handlePreview}
                     disabled={isGenerating || productGroups.length === 0}
@@ -734,25 +713,37 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
                       bgcolor: "#1976d2",
                       color: "white",
                       borderRadius: 2,
-                      p: 2,
+                      p: 1,
                       "&:hover": { bgcolor: "#1565c0" },
                     }}
                   >
                     {isGenerating ? <CircularProgress size={20} color="inherit" /> : <Visibility sx={{ mr: 1 }} />}
                     <Typography variant="body2">{isGenerating ? "Preparing..." : "Preview"}</Typography>
                   </IconButton>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => {
+                      localStorage.removeItem("quotation_form_data");
+                      localStorage.removeItem("quotation_product_pricing");
+                      setFormData({
+                        Name: "",
+                        mobile: "",
+                        refParty: "",
+                        seName: "",
+                        paymentWithDays: "",
+                        tax: "",
+                        remark: "",
+                      });
+                      setProductPricing({});
+                    }}
+                    disabled={isGenerating}
+                  >
+                    Clear Data
+                  </Button>
                 </>
               ) : (
                 <>
-                  {/* <Button
-                    variant="outlined"
-                    startIcon={<Share />}
-                    onClick={handleShare}
-                    disabled={isGenerating}
-                    sx={{ px: 3 }}
-                  >
-                    Share
-                  </Button> */}
                   <Button
                     variant="contained"
                     startIcon={isGenerating ? <CircularProgress size={20} color="inherit" /> : <Visibility />}
@@ -761,6 +752,28 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
                     sx={{ px: 3 }}
                   >
                     {isGenerating ? "Preparing..." : "Preview"}
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    onClick={() => {
+                      localStorage.removeItem("quotation_form_data");
+                      localStorage.removeItem("quotation_product_pricing");
+                      setFormData({
+                        Name: "",
+                        mobile: "",
+                        refParty: "",
+                        seName: "",
+                        paymentWithDays: "",
+                        tax: "",
+                        remark: "",
+                      });
+                      setProductPricing({});
+                    }}
+                    disabled={isGenerating}
+                    sx={{ px: 3 }}
+                  >
+                    Clear Data
                   </Button>
                 </>
               ))}

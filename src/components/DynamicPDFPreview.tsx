@@ -24,7 +24,7 @@ import {
   Paper,
   Stack,
 } from "@mui/material"
-import { ArrowBack, Download, WhatsApp, CheckCircle } from "@mui/icons-material"
+import { ArrowBack, Download, WhatsApp } from "@mui/icons-material"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
 import { useSnackbar } from "@/app/hooks/useSnackbar"
@@ -132,7 +132,7 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
 }) => {
   const theme = useTheme()
   const [isSending, setIsSending] = useState(false)
-  const [sendStatus, setSendStatus] = useState<"idle" | "success" | "error">("idle")
+  // Removed sendStatus state
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const { showSnackbar } = useSnackbar()
   const [pdfURL, setPDFURL] = useState<string | null>(null)
@@ -425,7 +425,7 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
     }
 
     setIsSending(true)
-    setSendStatus("idle")
+    // Removed setSendStatus("idle")
 
     try {
       const pdfBlob = generatePDF()
@@ -459,6 +459,7 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
       console.log("PDF URL:", uploadResponse.data.url)
       console.log("PDF URL:", pdfURL)
       if (!uploadResponse.data.success) {
+        showSnackbar(uploadResponse.data.error || "Failed to upload PDF to S3", "error")
         throw new Error(uploadResponse.data.error || "Failed to upload PDF to S3")
       }
 
@@ -483,32 +484,23 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
 
       // Check if WhatsApp API call was successful
       if (whatsappResponse.data && whatsappResponse.data.success) {
-        showSnackbar("PDF uploaded and WhatsApp message sent successfully!", "success")
-        setSendStatus("success")
-        // Clear form data and product pricing from localStorage after successful send
+        showSnackbar(whatsappResponse.data.message || "PDF uploaded and WhatsApp message sent successfully!", "success")
         localStorage.removeItem("quotation_form_data")
         localStorage.removeItem("quotation_product_pricing")
+        setTimeout(() => {
+          onBack();
+        }, 500);
       } else {
+        showSnackbar(whatsappResponse.data?.error || "Failed to send WhatsApp message", "error")
         throw new Error(whatsappResponse.data?.error || "Failed to send WhatsApp message")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading PDF or sending WhatsApp:", error)
-      setSendStatus("error")
-      showSnackbar(error instanceof Error ? error.message : "Failed to upload PDF or send WhatsApp", "error")
-      setTimeout(() => setSendStatus("idle"), 3000)
+      showSnackbar(error?.response?.data?.error || error?.message || "Failed to upload PDF or send WhatsApp", "error")
     } finally {
       setIsSending(false)
     }
   }
-
-  // const handleWhatsAppDirect = () => {
-  //   const message = encodeURIComponent(
-  //     `Hi ${formData.Name}, please find your quotation. We will send the PDF document separately.`,
-  //   )
-  //   const whatsappUrl = `https://wa.me/${formData.mobile}?text=${message}`
-  //   window.open(whatsappUrl, "_blank")
-  // }
-  
 
   const userData = localStorage.getItem("user")
   const parsedUser = userData ? JSON.parse(userData) : {}
@@ -897,8 +889,6 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
                 startIcon={
                   isSending ? (
                     <CircularProgress size={20} color="inherit" />
-                  ) : sendStatus === "success" ? (
-                    <CheckCircle />
                   ) : (
                     <WhatsApp />
                   )
@@ -914,11 +904,7 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
                   fontSize: { xs: "0.875rem", sm: "1rem" },
                 }}
               >
-                {isSending
-                  ? "Uploading PDF to S3 & Sending..."
-                  : sendStatus === "success"
-                    ? "PDF Uploaded & Sent Successfully!"
-                    : "Upload PDF to S3 & Send via WhatsApp"}
+                {isSending ? "Sending..." : "Send via WhatsApp"}
               </Button>
             </Stack>
           </Box>
@@ -927,16 +913,6 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
           {!formData.mobile && (
             <Alert severity="warning" sx={{ mb: 2, fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
               Customer mobile number is required to send via WhatsApp
-            </Alert>
-          )}
-          {sendStatus === "success" && (
-            <Alert severity="success" sx={{ mb: 2, fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
-              PDF generated and sent successfully to {formData.mobile}
-            </Alert>
-          )}
-          {sendStatus === "error" && (
-            <Alert severity="error" sx={{ mb: 2, fontSize: { xs: "0.75rem", sm: "0.875rem" } }}>
-              Failed to generate or send PDF. Please try again.
             </Alert>
           )}
         </CardContent>

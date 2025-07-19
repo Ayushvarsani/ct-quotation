@@ -744,16 +744,7 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
                 </>
               ) : (
                 <>
-                  <Button
-                    variant="contained"
-                    startIcon={isGenerating ? <CircularProgress size={20} color="inherit" /> : <Visibility />}
-                    onClick={handlePreview}
-                    disabled={isGenerating || productGroups.length === 0}
-                    sx={{ px: 3 }}
-                  >
-                    {isGenerating ? "Preparing..." : "Preview"}
-                  </Button>
-                  <Button
+                 <Button
                     variant="outlined"
                     color="secondary"
                     onClick={() => {
@@ -775,6 +766,16 @@ const DynamicQuotationForm: React.FC<DynamicQuotationFormProps> = ({ onPreview})
                   >
                     Clear Data
                   </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={isGenerating ? <CircularProgress size={20} color="inherit" /> : <Visibility />}
+                    onClick={handlePreview}
+                    disabled={isGenerating || productGroups.length === 0}
+                    sx={{ px: 3 }}
+                  >
+                    {isGenerating ? "Preparing..." : "Preview"}
+                  </Button>
+                 
                 </>
               ))}
           </Box>

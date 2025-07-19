@@ -868,15 +868,6 @@ const DynamicPDFPreview: React.FC<DynamicPDFPreviewProps> = ({
 
           {/* WhatsApp Actions */}
           <Box sx={{ textAlign: "center", mb: { xs: 2, sm: 3 } }}>
-            <Typography
-              variant="h6"
-              sx={{
-                mb: { xs: 1, sm: 2 },
-                fontSize: { xs: "1rem", sm: "1.25rem" },
-              }}
-            >
-              Share Quotation
-            </Typography>
             <Stack
               direction={{ xs: "column", sm: "row" }}
               spacing={{ xs: 1, sm: 2 }}
